@@ -4,17 +4,20 @@ After a successful plate lookup, pick **ONE** still PNG. Numbers are **GLOBAL**:
 
 ## Classify fuel → board
 
-Use `vehicle.fuel_type` from `POST /api/vehicle` (`petrol` | `diesel` | `hybrid` | `electric` | `unknown`). Then `fuel_raw`:
+Use `vehicle.fuel_type` from `POST /api/vehicle` (`petrol` | `diesel` | `hybrid` | `electric` | `unknown`). Then `fuel_raw`. Apply **top row first**:
 
-| fuel_type | extra | board |
+| fuel_type / raw | extra | board |
 |---|---|---|
-| petrol | | petrol |
 | diesel | | diesel |
-| hybrid | `fuel_raw` contains `diesel` (case insensitive) | diesel |
-| hybrid | otherwise | hybrid |
+| hybrid | `fuel_raw` contains `diesel` (e.g. Electric Diesel) | diesel |
+| `Gas Diesel` in `fuel_raw` | | diesel |
+| hybrid | otherwise, including missing `fuel_raw` | hybrid |
 | electric | | electric |
+| petrol | | petrol |
+| LPG / Gas / CNG / LNG / `Gas Bi-Fuel` in `fuel_raw` | not `Gas Diesel` | petrol |
 | unknown or missing | | unknown |
-| LPG / gas in `fuel_raw` | | petrol |
+
+Do not add AdBlue, turtle, HV-isolation, or EV-system ids. The 13 numbers stay closed.
 
 MCP: `show_dashboard` with argument `board` set to that id (`petrol` | `diesel` | `hybrid` | `electric` | `unknown`). Then `open_resource` the `file://` preview.
 
@@ -42,7 +45,7 @@ Van does **not** change lamps. Caption only: "your 2018 Transit — diesel van b
 
 ### Conservative lowercase substrings
 
-Join `make` and `model` with a single space, lowercase, and keep internal spaces (do not strip spaces or punctuation — so `ranger` matches a Ranger pickup, not a Range Rover). If that string contains any of these substrings, set `body=van`:
+Join `make` and `model` with a single space, lowercase, turn hyphens into spaces, and **keep** the remaining spaces (do not delete them — `ranger` must not match Range Rover). Never scan for `van` or `nv` (`TIGUAN` contains `van`; `CONVERTIBLE` contains `nv`). If that string contains any of these substrings, set `body=van`:
 
 ```
 transit
@@ -68,8 +71,6 @@ dispatch
 combo cargo
 doblo
 kangoo
-berlingo
-partner
 nv200
 nv300
 nv400
@@ -84,7 +85,7 @@ amarok
 ranger
 ```
 
-Use `combo cargo`, not bare `combo`. Use `transit custom` / `transit connect` as extra phrases; do not add bare `custom` or `connect`. `berlingo` and `partner` are LCVs. Skip `hercules`.
+Use `combo cargo`, not bare `combo`. Use `transit custom` / `transit connect` as extra phrases; do not add bare `custom` or `connect`. Skip `berlingo`, `partner`, and `hercules` (passenger twins are too common).
 
 Do **not** treat these as vans (passenger cars — never add them to the scan list):
 
@@ -93,6 +94,7 @@ fiesta
 focus
 golf
 kuga
+tiguan
 polo
 civic
 corolla
@@ -109,6 +111,6 @@ If they pick a number not on this board, do not invent. Show the unknown/full bo
 
 ## Fallback
 
-Lookup fail → board `unknown`. Owner says "it's a diesel" → switch board and re-show.
+Lookup fail → board `unknown` (ICE 13, never the electric subset). Owner says "it's a diesel" or "it's electric" → switch board and re-show.
 
 Do not diagnose. Do not add new lamp ids.
