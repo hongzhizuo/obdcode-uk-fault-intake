@@ -1,29 +1,27 @@
 #!/usr/bin/env python3
-"""Stdio MCP server: put the dashboard into the owner's Cursor chat.
+"""Stdio MCP server: put the dashboard in front of the owner.
 
-Two channels, because Cursor treats them differently:
+Cursor 3.11.19 chat builds `data:image/${mimeType}`, so spec `image/png`
+becomes an illegal URL. MCP Apps iframes are behind mcp_enable_ui (off).
+This server therefore:
 
-1. MCP Apps (SEP-1865): tool _meta.ui.resourceUri + ui:// HTML resource.
-   Cursor 2.6+ can render that HTML as an iframe in the conversation.
-   Pattern copied from modelcontextprotocol/ext-apps examples/qr-server.
-2. ImageContent on the tool result, for hosts that show images but not Apps.
-
-Read-tool PNGs and markdown ![] never reach the owner. Exploring SKILL.md
-is not showing the picture.
-
-No third-party packages. NDJSON and Content-Length framing. Logs to stderr.
+1. Returns ImageContent with mimeType `png` so that template becomes valid.
+2. Also returns an embedded image/png resource (Cursor's resource path uses
+   `data:${mimeType}` correctly).
+3. Copies the PNG to ~/.cursor/ so open_resource can preview it in Glass.
 """
 from __future__ import annotations
 
 import base64
 import json
+import shutil
 import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 ASSETS = ROOT / "assets"
 SERVER_NAME = "obdcode-uk-fault-intake"
-SERVER_VERSION = "1.1.0"
+SERVER_VERSION = "1.2.0"
 PROTOCOL_FALLBACK = "2025-03-26"
 SUPPORTED_PROTOCOLS = frozenset({
     "2024-11-05",
@@ -31,6 +29,13 @@ SUPPORTED_PROTOCOLS = frozenset({
     "2025-06-18",
     "2026-07-28",
 })
+PREVIEW_PNG = Path.home() / ".cursor" / "obdcode-uk-dashboard.png"
+PREVIEW_LAMP = Path.home() / ".cursor" / "obdcode-uk-lamp.png"
+# Cursor 3.11.19 chat does: src=`data:image/${mimeType};base64,...`
+# Spec mimeType "image/png" becomes data:image/image/png and the <img> dies.
+# The subtype "png" makes that template produce a valid data URL.
+CURSOR_IMG_MIME = "png"
+SPEC_IMG_MIME = "image/png"
 APP_MIME = "text/html;profile=mcp-app"
 DASHBOARD_URI = "ui://obdcode-uk-fault-intake/dashboard.html"
 LAMP_URI = "ui://obdcode-uk-fault-intake/lamp.html"
@@ -98,6 +103,12 @@ TOOLS = [
 def log(msg: str) -> None:
     sys.stderr.write(msg + "\n")
     sys.stderr.flush()
+
+
+def publish_preview(src: Path, dest: Path) -> str:
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copyfile(src, dest)
+    return dest.resolve().as_uri()
 
 
 def png_b64(path: Path) -> str:
@@ -218,19 +229,33 @@ def dashboard_html() -> str:
     return DASHBOARD_HTML.replace("CLUSTER_B64", png_b64(path))
 
 
-def png_content(path: Path, caption: str, uri: str) -> dict:
+def png_content(path: Path, caption: str, uri: str, preview_uri: str | None = None) -> dict:
     data = png_b64(path)
+    extra = ""
+    if preview_uri:
+        extra = (
+            f" If the chat image is blank, open {preview_uri} with open_resource "
+            "(file is under ~/.cursor so Glass can preview it)."
+        )
     return {
         "content": [
             {
                 "type": "image",
                 "data": data,
-                "mimeType": "image/png",
-                "annotations": {"audience": ["user"], "priority": 1.0},
+                "mimeType": CURSOR_IMG_MIME,
+                "annotations": {"audience": ["user", "assistant"], "priority": 1.0},
+            },
+            {
+                "type": "resource",
+                "resource": {
+                    "uri": preview_uri or uri,
+                    "mimeType": SPEC_IMG_MIME,
+                    "blob": data,
+                },
             },
             {
                 "type": "text",
-                "text": caption,
+                "text": caption + extra,
                 "annotations": {"audience": ["user", "assistant"]},
             },
         ],
@@ -268,18 +293,21 @@ def call_tool(name: str, args: dict | None) -> dict:
         path = ASSETS / "cluster.png"
         if not path.is_file():
             return error_content(f"Missing {path}")
+        preview = publish_preview(path, PREVIEW_PNG)
         return png_content(
             path,
             "Match the shape that is lit on your car. Reply with the number. "
             "If it flashes, say flashing.",
             DASHBOARD_URI,
+            preview,
         )
     if name == "show_lamp":
         resolved = resolve_lamp(args)
         if isinstance(resolved, str):
             return error_content(resolved)
         number, lamp_id, path = resolved
-        return png_content(path, f"Lamp {number} ({lamp_id}).", LAMP_URI)
+        preview = publish_preview(path, PREVIEW_LAMP)
+        return png_content(path, f"Lamp {number} ({lamp_id}).", LAMP_URI, preview)
     return error_content(f"Unknown tool {name}")
 
 
@@ -351,10 +379,10 @@ def handle(msg: dict) -> dict | None:
                 },
                 "serverInfo": {"name": SERVER_NAME, "version": SERVER_VERSION},
                 "instructions": (
-                    "When the owner gives a UK plate and has not picked a lamp, "
-                    "call show_dashboard in that same turn so the MCP App iframe "
-                    "appears in THEIR chat. Exploring markdown is not the picker. "
-                    "After they pick a number, call show_lamp."
+                    "Call show_dashboard in the same turn as a plate with no lamp pick. "
+                    "Then open_resource the file:// URI in the tool text "
+                    "(~/.cursor/obdcode-uk-dashboard.png) so the owner sees the cluster "
+                    "even if chat images are broken. After they pick a number, show_lamp."
                 ),
             },
         }
@@ -469,6 +497,17 @@ def self_test() -> int:
     result = call_tool("show_dashboard", {})
     if result.get("_meta", {}).get("ui", {}).get("resourceUri") != DASHBOARD_URI:
         print("FAIL tool result missing ui.resourceUri", file=sys.stderr)
+        return 1
+    image = result["content"][0]
+    if image.get("mimeType") != CURSOR_IMG_MIME:
+        print(f"FAIL cursor mime {image.get('mimeType')}", file=sys.stderr)
+        return 1
+    kinds = [c["type"] for c in result["content"]]
+    if "resource" not in kinds:
+        print("FAIL missing embedded image resource", file=sys.stderr)
+        return 1
+    if not PREVIEW_PNG.is_file():
+        print("FAIL preview png not published", file=sys.stderr)
         return 1
     html = dashboard_html()
     if "CLUSTER_B64" in html or "data:image/png;base64," not in html:

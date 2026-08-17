@@ -16,7 +16,7 @@ Owner starts with a plate and no lamp. The agent **shows the cluster picture** b
 
 **Owner:** plate AB12CDE
 
-**Agent:** Calls MCP `show_dashboard` so Cursor mounts the cluster MCP App in **the owner's chat**, then asks which **number on the picture** is lit. Exploring SKILL.md without that call is a fail. Saying "look at the picture above" without the tool call is a fail.
+**Agent:** Calls MCP `show_dashboard`, then `open_resource` on the `file://` preview under `~/.cursor`, then asks which **number on the picture** is lit. Exploring SKILL.md without those calls is a fail.
 
 **Owner:** 6
 
