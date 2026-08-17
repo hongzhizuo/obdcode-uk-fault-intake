@@ -1,11 +1,17 @@
 #!/usr/bin/env python3
-"""Stdio MCP server: put dashboard lamp pictures into the user's Cursor chat.
+"""Stdio MCP server: put the dashboard into the owner's Cursor chat.
 
-Cursor's Read tool shows images to the model, not in the owner's message.
-MCP image content does render in the chat. This server exists for that.
+Two channels, because Cursor treats them differently:
 
-No third-party packages. Speaks newline-delimited JSON (Python MCP SDK) and
-Content-Length framing (TypeScript MCP SDK). Logs go to stderr only.
+1. MCP Apps (SEP-1865): tool _meta.ui.resourceUri + ui:// HTML resource.
+   Cursor 2.6+ can render that HTML as an iframe in the conversation.
+   Pattern copied from modelcontextprotocol/ext-apps examples/qr-server.
+2. ImageContent on the tool result, for hosts that show images but not Apps.
+
+Read-tool PNGs and markdown ![] never reach the owner. Exploring SKILL.md
+is not showing the picture.
+
+No third-party packages. NDJSON and Content-Length framing. Logs to stderr.
 """
 from __future__ import annotations
 
@@ -17,7 +23,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 ASSETS = ROOT / "assets"
 SERVER_NAME = "obdcode-uk-fault-intake"
-SERVER_VERSION = "1.0.0"
+SERVER_VERSION = "1.1.0"
 PROTOCOL_FALLBACK = "2025-03-26"
 SUPPORTED_PROTOCOLS = frozenset({
     "2024-11-05",
@@ -25,6 +31,11 @@ SUPPORTED_PROTOCOLS = frozenset({
     "2025-06-18",
     "2026-07-28",
 })
+APP_MIME = "text/html;profile=mcp-app"
+DASHBOARD_URI = "ui://obdcode-uk-fault-intake/dashboard.html"
+LAMP_URI = "ui://obdcode-uk-fault-intake/lamp.html"
+SDK_SRC = "https://unpkg.com/@modelcontextprotocol/ext-apps@0.4.0/app-with-deps"
+UI_CSP = {"csp": {"resourceDomains": ["https://unpkg.com"]}}
 
 LAMPS: dict[int, tuple[str, str]] = {
     1: ("oil-pressure", "lamp-01-oil-pressure.png"),
@@ -43,27 +54,33 @@ LAMPS: dict[int, tuple[str, str]] = {
 }
 ID_TO_NUMBER = {lamp_id: n for n, (lamp_id, _) in LAMPS.items()}
 
+
+def ui_meta(uri: str) -> dict:
+    return {"ui": {"resourceUri": uri}, "ui/resourceUri": uri}
+
+
 TOOLS = [
     {
         "name": "show_dashboard",
         "description": (
-            "Show the numbered UK instrument-cluster picture in the user's chat "
-            "so they can match the lamp that is lit on their car. Call this when "
-            "they give a plate or mention a warning light and have not yet picked "
-            "a lamp. Do not replace this with a text list of lamp names."
+            "REQUIRED first call when the owner gives a UK plate or mentions a "
+            "warning lamp and has not picked a number yet. Renders the numbered "
+            "instrument cluster as an MCP App in THEIR chat. Do not Explore "
+            "SKILL.md instead of this. Do not say 'look at the picture above' "
+            "unless you have called this tool in this turn."
         ),
         "inputSchema": {
             "type": "object",
             "properties": {},
             "additionalProperties": False,
         },
+        "_meta": ui_meta(DASHBOARD_URI),
     },
     {
         "name": "show_lamp",
         "description": (
-            "Show one dashboard lamp picture in the user's chat so they can "
-            "confirm the shape. Pass the number printed on the cluster (1-13), "
-            "or the lamp id such as engine-steady."
+            "Show one dashboard lamp in the user's chat so they can confirm "
+            "the shape. Pass the number printed on the cluster (1-13)."
         ),
         "inputSchema": {
             "type": "object",
@@ -73,6 +90,7 @@ TOOLS = [
             },
             "additionalProperties": False,
         },
+        "_meta": ui_meta(LAMP_URI),
     },
 ]
 
@@ -82,8 +100,126 @@ def log(msg: str) -> None:
     sys.stderr.flush()
 
 
-def png_content(path: Path, caption: str) -> dict:
-    data = base64.b64encode(path.read_bytes()).decode("ascii")
+def png_b64(path: Path) -> str:
+    return base64.b64encode(path.read_bytes()).decode("ascii")
+
+
+DASHBOARD_HTML = """<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="color-scheme" content="dark">
+  <style>
+    html, body { margin: 0; padding: 12px; background: #111; color: #ececf0;
+      font-family: ui-sans-serif, system-ui, sans-serif; }
+    img { width: 100%; max-width: 880px; display: block; border-radius: 10px; }
+    .hint { font-size: 13px; color: #b0b2b8; margin: 10px 0 8px; }
+    .row { display: flex; flex-wrap: wrap; gap: 6px; }
+    button { min-width: 40px; height: 36px; border-radius: 8px; cursor: pointer;
+      border: 1px solid #3a3c44; background: #1c1d22; color: #fff; font-size: 14px; }
+    button:hover, button.sel { background: #2a2c34; border-color: #6a6e7a; }
+    #status { font-size: 12px; color: #8a8d96; margin-top: 8px; min-height: 1em; }
+  </style>
+</head>
+<body>
+  <img id="cluster" alt="Your dashboard" src="data:image/png;base64,CLUSTER_B64">
+  <p class="hint">Match the shape that is lit. Tap the number. If it flashes, tap flashing then the number — or tap 7 for the flashing engine lamp.</p>
+  <div class="row" id="nums"></div>
+  <div id="status"></div>
+  <script type="module">
+    const nums = document.getElementById("nums");
+    const status = document.getElementById("status");
+    for (let n = 1; n <= 13; n++) {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.textContent = String(n);
+      b.addEventListener("click", () => pick(n, b));
+      nums.appendChild(b);
+    }
+    let app = null;
+    try {
+      const { App } = await import("SDK_SRC");
+      app = new App({ name: "OBDCode dashboard", version: "1.1.0" });
+      app.ontoolresult = ({ content }) => {
+        const img = content && content.find(c => c.type === "image");
+        if (img && img.data) {
+          document.getElementById("cluster").src =
+            "data:" + (img.mimeType || "image/png") + ";base64," + img.data;
+        }
+      };
+      await app.connect();
+    } catch (err) {
+      status.textContent = "Picture is on screen. Type the number in chat if tap does not send.";
+    }
+    async function pick(n, btn) {
+      for (const el of nums.querySelectorAll("button")) el.classList.remove("sel");
+      btn.classList.add("sel");
+      const text = String(n);
+      status.textContent = "Picked " + text + ".";
+      try {
+        if (app && typeof app.sendMessage === "function") {
+          await app.sendMessage({ role: "user", content: [{ type: "text", text }] });
+          return;
+        }
+        if (app && typeof app.updateModelContext === "function") {
+          await app.updateModelContext({
+            content: [{ type: "text", text: "Owner picked lamp " + text }]
+          });
+        }
+      } catch (err) {
+        status.textContent = "Picked " + text + ". Type that number in the chat.";
+      }
+    }
+  </script>
+</body>
+</html>
+""".replace("SDK_SRC", SDK_SRC)
+
+LAMP_HTML = """<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="color-scheme" content="dark">
+  <style>
+    html, body { margin: 0; padding: 16px; background: #111; color: #ececf0;
+      font-family: ui-sans-serif, system-ui, sans-serif; text-align: center; }
+    img { width: 180px; height: 180px; }
+    p { font-size: 13px; color: #b0b2b8; }
+  </style>
+</head>
+<body>
+  <div id="pic"></div>
+  <p id="cap">Confirm this is the lamp that is lit.</p>
+  <script type="module">
+    import { App } from "SDK_SRC";
+    const app = new App({ name: "OBDCode lamp", version: "1.1.0" });
+    app.ontoolresult = ({ content }) => {
+      const img = content && content.find(c => c.type === "image");
+      const text = content && content.find(c => c.type === "text");
+      if (img && img.data) {
+        const image = document.createElement("img");
+        image.alt = "Lamp";
+        image.src = "data:" + (img.mimeType || "image/png") + ";base64," + img.data;
+        const pic = document.getElementById("pic");
+        pic.innerHTML = "";
+        pic.appendChild(image);
+      }
+      if (text && text.text) document.getElementById("cap").textContent = text.text;
+    };
+    await app.connect();
+  </script>
+</body>
+</html>
+""".replace("SDK_SRC", SDK_SRC)
+
+
+def dashboard_html() -> str:
+    path = ASSETS / "cluster.png"
+    return DASHBOARD_HTML.replace("CLUSTER_B64", png_b64(path))
+
+
+def png_content(path: Path, caption: str, uri: str) -> dict:
+    data = png_b64(path)
     return {
         "content": [
             {
@@ -97,7 +233,8 @@ def png_content(path: Path, caption: str) -> dict:
                 "text": caption,
                 "annotations": {"audience": ["user", "assistant"]},
             },
-        ]
+        ],
+        "_meta": ui_meta(uri),
     }
 
 
@@ -135,14 +272,56 @@ def call_tool(name: str, args: dict | None) -> dict:
             path,
             "Match the shape that is lit on your car. Reply with the number. "
             "If it flashes, say flashing.",
+            DASHBOARD_URI,
         )
     if name == "show_lamp":
         resolved = resolve_lamp(args)
         if isinstance(resolved, str):
             return error_content(resolved)
         number, lamp_id, path = resolved
-        return png_content(path, f"Lamp {number} ({lamp_id}).")
+        return png_content(path, f"Lamp {number} ({lamp_id}).", LAMP_URI)
     return error_content(f"Unknown tool {name}")
+
+
+def resource_list() -> list[dict]:
+    return [
+        {
+            "uri": DASHBOARD_URI,
+            "name": "dashboard",
+            "title": "Your dashboard",
+            "mimeType": APP_MIME,
+            "_meta": {"ui": UI_CSP},
+        },
+        {
+            "uri": LAMP_URI,
+            "name": "lamp",
+            "title": "One lamp",
+            "mimeType": APP_MIME,
+            "_meta": {"ui": UI_CSP},
+        },
+    ]
+
+
+def resource_read(uri: str) -> dict:
+    if uri == DASHBOARD_URI:
+        text = dashboard_html()
+    elif uri == LAMP_URI:
+        text = LAMP_HTML
+    else:
+        return {
+            "jsonrpc": "2.0",
+            "error": {"code": -32602, "message": f"Unknown resource {uri}"},
+        }
+    return {
+        "contents": [
+            {
+                "uri": uri,
+                "mimeType": APP_MIME,
+                "text": text,
+                "_meta": {"ui": UI_CSP},
+            }
+        ]
+    }
 
 
 def handle(msg: dict) -> dict | None:
@@ -150,7 +329,7 @@ def handle(msg: dict) -> dict | None:
     req_id = msg.get("id")
     params = msg.get("params") or {}
 
-    if method == "notifications/initialized" or method == "notifications/cancelled":
+    if method in {"notifications/initialized", "notifications/cancelled"}:
         return None
     if method is None:
         return None
@@ -163,12 +342,19 @@ def handle(msg: dict) -> dict | None:
             "id": req_id,
             "result": {
                 "protocolVersion": version,
-                "capabilities": {"tools": {}},
+                "capabilities": {
+                    "tools": {},
+                    "resources": {},
+                    "extensions": {
+                        "io.modelcontextprotocol/ui": {"mimeTypes": [APP_MIME]}
+                    },
+                },
                 "serverInfo": {"name": SERVER_NAME, "version": SERVER_VERSION},
                 "instructions": (
-                    "Put the UK dashboard picture in the user's chat with "
-                    "show_dashboard. After they pick a number, call show_lamp. "
-                    "Do not describe the lamps in prose."
+                    "When the owner gives a UK plate and has not picked a lamp, "
+                    "call show_dashboard in that same turn so the MCP App iframe "
+                    "appears in THEIR chat. Exploring markdown is not the picker. "
+                    "After they pick a number, call show_lamp."
                 ),
             },
         }
@@ -184,9 +370,23 @@ def handle(msg: dict) -> dict | None:
         args = params.get("arguments") or {}
         return {"jsonrpc": "2.0", "id": req_id, "result": call_tool(name, args)}
 
-    if method in {"resources/list", "prompts/list"}:
-        key = "resources" if method.startswith("resources") else "prompts"
-        return {"jsonrpc": "2.0", "id": req_id, "result": {key: []}}
+    if method == "resources/list":
+        return {"jsonrpc": "2.0", "id": req_id, "result": {"resources": resource_list()}}
+
+    if method == "resources/templates/list":
+        return {"jsonrpc": "2.0", "id": req_id, "result": {"resourceTemplates": []}}
+
+    if method == "resources/read":
+        uri = params.get("uri") or ""
+        payload = resource_read(uri)
+        if "error" in payload and "contents" not in payload:
+            payload["id"] = req_id
+            payload["jsonrpc"] = "2.0"
+            return payload
+        return {"jsonrpc": "2.0", "id": req_id, "result": payload}
+
+    if method == "prompts/list":
+        return {"jsonrpc": "2.0", "id": req_id, "result": {"prompts": []}}
 
     if req_id is None:
         return None
@@ -198,8 +398,6 @@ def handle(msg: dict) -> dict | None:
 
 
 class FramedIO:
-    """Detect Content-Length vs NDJSON from the first request, then stick to it."""
-
     def __init__(self) -> None:
         self.mode: str | None = None
 
@@ -229,7 +427,9 @@ class FramedIO:
     def write(self, msg: dict) -> None:
         body = json.dumps(msg, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
         if self.mode == "lsp":
-            sys.stdout.buffer.write(f"Content-Length: {len(body)}\r\n\r\n".encode("ascii"))
+            sys.stdout.buffer.write(
+                f"Content-Length: {len(body)}\r\n\r\n".encode("ascii")
+            )
             sys.stdout.buffer.write(body)
         else:
             sys.stdout.buffer.write(body + b"\n")
@@ -267,28 +467,37 @@ def self_test() -> int:
         print("FAIL missing cluster.png", file=sys.stderr)
         return 1
     result = call_tool("show_dashboard", {})
-    image = result["content"][0]
-    raw = base64.b64decode(image["data"])
-    if raw[:8] != b"\x89PNG\r\n\x1a\n":
-        print("FAIL cluster is not PNG", file=sys.stderr)
+    if result.get("_meta", {}).get("ui", {}).get("resourceUri") != DASHBOARD_URI:
+        print("FAIL tool result missing ui.resourceUri", file=sys.stderr)
         return 1
-    if image.get("annotations", {}).get("audience") != ["user"]:
-        print("FAIL image must be audience=user", file=sys.stderr)
-        return 1
-    lamp = call_tool("show_lamp", {"number": 6})
-    raw6 = base64.b64decode(lamp["content"][0]["data"])
-    if raw6[:8] != b"\x89PNG\r\n\x1a\n":
-        print("FAIL lamp 6 is not PNG", file=sys.stderr)
+    html = dashboard_html()
+    if "CLUSTER_B64" in html or "data:image/png;base64," not in html:
+        print("FAIL dashboard html not baked", file=sys.stderr)
         return 1
     listed = handle({"jsonrpc": "2.0", "id": 1, "method": "tools/list"})
-    names = [t["name"] for t in listed["result"]["tools"]]
-    if names != ["show_dashboard", "show_lamp"]:
-        print(f"FAIL tools {names}", file=sys.stderr)
+    dash = listed["result"]["tools"][0]
+    if dash["_meta"]["ui"]["resourceUri"] != DASHBOARD_URI:
+        print("FAIL tools/list missing ui meta", file=sys.stderr)
         return 1
-    print(
-        f"ok cluster={len(raw)}B lamp6={len(raw6)}B "
-        f"dashboard_tool=show_dashboard"
-    )
+    init = handle({
+        "jsonrpc": "2.0", "id": 2, "method": "initialize",
+        "params": {"protocolVersion": "2025-03-26", "capabilities": {}, "clientInfo": {"name": "t", "version": "0"}},
+    })
+    ext = init["result"]["capabilities"]["extensions"]["io.modelcontextprotocol/ui"]
+    if APP_MIME not in ext["mimeTypes"]:
+        print("FAIL initialize missing ui extension", file=sys.stderr)
+        return 1
+    res = handle({"jsonrpc": "2.0", "id": 3, "method": "resources/read", "params": {"uri": DASHBOARD_URI}})
+    body = res["result"]["contents"][0]
+    if body["mimeType"] != APP_MIME:
+        print("FAIL resource mime", file=sys.stderr)
+        return 1
+    raw_b64 = body["text"].split("base64,", 1)[1].split('"', 1)[0]
+    raw = base64.b64decode(raw_b64 + "=" * (-len(raw_b64) % 4))
+    if raw[:8] != b"\x89PNG\r\n\x1a\n":
+        print("FAIL baked image is not PNG", file=sys.stderr)
+        return 1
+    print(f"ok mcp-app dashboard_html={len(html)}B uri={DASHBOARD_URI}")
     return 0
 
 

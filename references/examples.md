@@ -16,7 +16,7 @@ Owner starts with a plate and no lamp. The agent **shows the cluster picture** b
 
 **Owner:** plate AB12CDE
 
-**Agent:** Calls MCP `show_dashboard` so the dashboard picture appears **in the owner's chat**, then asks which **number on the picture** is lit. A name-only list is a fail. Read-tool on the PNG is a fail (the owner cannot see it). Markdown `![]` is a fail.
+**Agent:** Calls MCP `show_dashboard` so Cursor mounts the cluster MCP App in **the owner's chat**, then asks which **number on the picture** is lit. Exploring SKILL.md without that call is a fail. Saying "look at the picture above" without the tool call is a fail.
 
 **Owner:** 6
 

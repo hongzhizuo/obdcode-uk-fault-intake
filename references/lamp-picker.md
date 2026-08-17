@@ -6,13 +6,14 @@ The picker is **one picture**: `assets/cluster.png`. Numbers are printed on the 
 
 ## How to show it (do this)
 
-Cursor's Read tool shows images to the **model**, not in the owner's chat. MCP image content does appear in the chat. That is why the picker is an MCP call, not a file Read.
+Cursor's Read tool shows images to the **model**, not in the owner's chat. Markdown `![]` usually does not render either. The GitHub pattern that Cursor actually draws in the conversation is an **MCP App** (SEP-1865): the tool `show_dashboard` is bound to `ui://obdcode-uk-fault-intake/dashboard.html`, which Cursor mounts as an iframe. Same idea as `modelcontextprotocol/ext-apps` `examples/qr-server`.
 
-1. Call MCP tool `show_dashboard` on server `user-obdcode-uk-fault-intake` (Cursor prefixes user MCP servers with `user-`). That puts the numbered dashboard in **their** message.
+1. Call MCP tool `show_dashboard` on server `user-obdcode-uk-fault-intake` in the **same turn** as the plate. That is the picker. Exploring `SKILL.md` is not the picker.
 2. Ask exactly: "Which number matches the lamp that is lit on your car? Reply 1–13. If it is flashing, say flashing."
 3. Do **not** also list "oil-can / engine-block / battery". The owner is looking at the picture.
+4. Never write "look at the picture above" unless you have actually called `show_dashboard` in this turn.
 
-Do not use Explore. Do not use `open_resource` as the picker. Do not paste markdown `![](assets/cluster.png)` — chat cannot resolve a skill-relative path, and even an https image often does not render in Cursor chat. ASCII art is a last resort only if the MCP server is disconnected **and** you have already said the picture could not be shown.
+Do not use Explore. Do not use `open_resource` as the picker. Do not paste markdown `![](assets/cluster.png)`. ASCII art is a last resort only if the MCP server is disconnected **and** you have already said the picture could not be shown.
 
 If they are driving and the lamp is 1, 2, 3, 7, or 8-with-heavy-steering/rising-temp/belt-noise: **stop first**. Showing the picture does not delay that.
 

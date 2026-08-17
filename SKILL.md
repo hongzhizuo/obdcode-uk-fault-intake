@@ -1,6 +1,6 @@
 ---
 name: obdcode-uk-fault-intake
-description: Turns a UK number plate plus which of 13 dashboard warning lamps is lit into a garage-ready fault statement covering vehicle identity, the lamp, urgency, and this car's MOT history as context, then stops. It does not diagnose. Use when a UK driver gives a plate, registration or reg; mentions a dashboard warning light or warning lamp including oil pressure, engine management, EML or MIL; needs to pick a lamp from the dashboard cluster picture; sees an amber or red dashboard lamp; mentions MOT; or asks what to tell the garage.
+description: Turns a UK number plate plus which of 13 dashboard warning lamps is lit into a garage-ready fault statement covering vehicle identity, the lamp, urgency, and this car's MOT history as context, then stops. It does not diagnose. When the owner gives a plate or mentions a warning lamp and has not picked a number, you MUST call MCP tool show_dashboard on user-obdcode-uk-fault-intake in that same turn so the cluster MCP App appears in their chat — exploring SKILL.md is not showing the picture. Use when a UK driver gives a plate, registration or reg; mentions a dashboard warning light or warning lamp including oil pressure, engine management, EML or MIL; needs to pick a lamp from the dashboard cluster picture; sees an amber or red dashboard lamp; mentions MOT; or asks what to tell the garage.
 license: CC-BY-4.0
 metadata:
   author: OBDCode UK

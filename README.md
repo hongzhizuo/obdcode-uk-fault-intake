@@ -40,7 +40,7 @@ git clone <repo-url> ~/.agents/skills/obdcode-uk-fault-intake
 The skill loads from ambient context. Both of these are valid triggers:
 
 - Already picked: `reg AB12CDE, lamp 6` or `reg AB12CDE, engine-steady`
-- Not yet picked: `amber engine light on, plate AB12CDE` — the skill must **show the dashboard picture** before looking up, unless a red lamp is already named
+- Not yet picked: `amber engine light on, plate AB12CDE` — the skill must **call MCP `show_dashboard`** (an MCP App iframe) before looking up, unless a red lamp is already named
 
 Cursor's Read tool shows images to the model, not in the owner's chat. After cloning, add this to `~/.cursor/mcp.json` (keep any servers you already have) and reload MCP / restart Cursor:
 
