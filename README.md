@@ -2,7 +2,7 @@
 
 An agent skill that takes two inputs — a **UK number plate** and **a pick from one of thirteen dashboard lamps** — and turns them into a structured, garage-ready description of a car fault.
 
-The owner does not describe the light in conversation. They give the plate and choose one lamp from the numbered menu.
+The owner does not have to know the lamp's name. They give the plate and point at a **drawn dashboard** (ASCII cluster in `references/lamp-picker.md`) whose shapes match the symbols on the car.
 
 It identifies the vehicle from its official MOT record, grades how urgent the lamp is, cross-references the car's own MOT defect history, and writes a statement the owner can read aloud at a service desk.
 
@@ -40,16 +40,16 @@ git clone <repo-url> ~/.agents/skills/obdcode-uk-fault-intake
 The skill loads from ambient context. Both of these are valid triggers:
 
 - Already picked: `reg AB12CDE, lamp 6` or `reg AB12CDE, engine-steady`
-- Not yet picked: `amber engine light on, plate AB12CDE` — the skill must show the 13-lamp menu before looking up, unless a red lamp is already named
+- Not yet picked: `amber engine light on, plate AB12CDE` — the skill must **draw the dashboard cluster** before looking up, unless a red lamp is already named
 
-After cloning, **start a new agent conversation** — old threads will not reload the skill. A passing first run is a plate only: the 13-lamp menu appears before any vehicle card. A passing safety run is an oil lamp while driving: the first sentence is stop, and lookup comes after.
+After cloning, **start a new agent conversation** — old threads will not reload the skill. A passing first run is a plate only: a **drawn instrument cluster** (not a text list of names) appears before any vehicle card. A passing safety run is an oil lamp while driving: the first sentence is stop, and lookup comes after.
 
 ## Layout
 
 | File | Contents |
 |---|---|
 | `SKILL.md` | Workflow, safety ordering, output format, red lines |
-| `references/lamp-picker.md` | The exact numbered menu the agent shows |
+| `references/lamp-picker.md` | ASCII instrument cluster plus 13 shape glyphs the owner matches by eye |
 | `references/warning-lights.md` | Thirteen UK dashboard lamps with safety grading and drive advice |
 | `references/vehicle-lookup.md` | Three access tiers, response shape, privacy rules |
 | `references/examples.md` | Worked runs: plate-then-picker, oil-lamp stop-first, not_found fallback, unmatched lamp, diagnosis refused |

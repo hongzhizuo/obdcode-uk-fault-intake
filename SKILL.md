@@ -1,6 +1,6 @@
 ---
 name: obdcode-uk-fault-intake
-description: Turns a UK number plate plus which of 13 dashboard warning lamps is lit into a garage-ready fault statement covering vehicle identity, the lamp, urgency, and this car's MOT history as context, then stops. It does not diagnose. Use when a UK driver gives a plate, registration or reg; mentions a dashboard warning light or warning lamp including oil pressure, engine management, EML or MIL; needs to pick a lamp from the 13-lamp menu; sees an amber or red dashboard lamp; mentions MOT; or asks what to tell the garage.
+description: Turns a UK number plate plus which of 13 dashboard warning lamps is lit into a garage-ready fault statement covering vehicle identity, the lamp, urgency, and this car's MOT history as context, then stops. It does not diagnose. Use when a UK driver gives a plate, registration or reg; mentions a dashboard warning light or warning lamp including oil pressure, engine management, EML or MIL; needs to pick a lamp from the drawn dashboard cluster; sees an amber or red dashboard lamp; mentions MOT; or asks what to tell the garage.
 license: CC-BY-4.0
 metadata:
   author: OBDCode UK
@@ -37,13 +37,16 @@ Ask "are you driving right now?" if that is not already clear. If yes, lead with
 
 If none of the stop conditions apply, continue.
 
-## Step 2 — Identify the lamp (picker, not free-text guessing)
+## Step 2 — Identify the lamp (draw the cluster, do not describe it)
+
+Owners match **shapes**, not names. A list of "oil-can / engine-block outline" is a fail. They will tell you which drawing is lit.
 
 Do not start with "what colour is it?". Do not guess the lamp from a vague description.
 
-- If the owner already named a lamp that maps to **exactly one** of the 13 ids, do not re-ask the menu. Treat that as the pick.
-- Otherwise present the numbered menu from `references/lamp-picker.md` **in full, once**. Ask them to reply with a number **1–13** or an **id**.
-- If the reply does not match an item, say so and show the menu again. **Never force the nearest lamp.**
+- If the owner already named a lamp that maps to **exactly one** of the 13 ids, do not re-ask. Treat that as the pick.
+- Otherwise paste the **dashboard drawing** from `references/lamp-picker.md` in a fenced code block, **in full, once**. The cluster graphic and the 13 mini-glyphs must appear. A numbered prose list without the drawing is not the picker.
+- Ask them to reply with the **number next to the matching shape**, or an id. If it flashes, they should say flashing.
+- If the reply does not match, say so and show the drawing again. **Never force the nearest lamp.**
 - After a pick, read that id in `references/warning-lights.md` for class, drive advice, owner-safe checks, garage questions, and MOT note.
 - Only ask extra behaviour questions when that id still needs them:
   - `tyre-pressure` — did it flash for about a minute at startup and then stay steady (system fault), or is it simply on (likely low pressure)?
@@ -57,7 +60,7 @@ Do not start with "what colour is it?". Do not guess the lamp from a vague descr
 - **Only a plate so far:** show the picker, then lookup — unless speech already contains a red lamp, in which case **stop first**.
 - **Both in one message:** safety if red. If speech maps to **exactly one** id, lookup then the statement — do not re-show the menu. If it does not (e.g. "engine light" is 6 or 7), show the picker, or ask only steady vs flashing. Never skip the picker just because a plate arrived in the same message.
 
-If you are unsure what "good" looks like, read example A in `references/examples.md` — the menu comes before lookup when the lamp is unknown.
+If you are unsure what "good" looks like, read example A in `references/examples.md` — the **drawn cluster** comes before lookup when the lamp is unknown.
 
 If the plate is still missing after the lamp is identified (and after any stop instruction), ask for it.
 

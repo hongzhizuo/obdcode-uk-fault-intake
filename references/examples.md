@@ -12,15 +12,11 @@ MOT records are Crown copyright. Lamp advice is original to this skill.
 
 ## Example A — main path: plate first, then lamp 6 `engine-steady`
 
-Owner starts with a plate and no lamp. The agent shows the picker **before** any lookup.
+Owner starts with a plate and no lamp. The agent **draws the cluster** before any lookup. A name-only list is a fail.
 
 **Owner:** plate AB12CDE
 
-**Agent:** pastes `references/lamp-picker.md` in full. First and last lines (menu not duplicated here):
-
-> # Lamp picker
->
-> Never map a free-text "a light came on" to a default lamp.
+**Agent:** pastes the fenced dashboard drawing from `references/lamp-picker.md` in full (the box with RPM / SPEED and the 13 numbered glyphs). Asks which **number matches the shape** that is lit.
 
 **Owner:** 6
 
@@ -113,7 +109,7 @@ They pick lamp 6. The statement still happens. Do not invent a DVSA history.
 
 **Owner:** there's a light on
 
-**Agent:** pastes `references/lamp-picker.md` in full (same first and last lines as A). Does **not** default to `engine-steady`. Does not look up a plate it does not have.
+**Agent:** pastes the same dashboard drawing. Does **not** default to `engine-steady`. Does not look up a plate it does not have.
 
 ## Example E — diagnosis refusal (short)
 
