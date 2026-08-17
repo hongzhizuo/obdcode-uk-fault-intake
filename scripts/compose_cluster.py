@@ -1,0 +1,193 @@
+#!/usr/bin/env python3
+"""Build assets/cluster.png from the 13 lamp icons.
+
+The picker the owner sees is one instrument-cluster picture with numbers
+on the lamps — not a list of English names. Regenerates in place.
+"""
+from __future__ import annotations
+
+import math
+from pathlib import Path
+
+from PIL import Image, ImageDraw, ImageFont
+
+ROOT = Path(__file__).resolve().parents[1]
+ASSETS = ROOT / "assets"
+OUT = ASSETS / "cluster.png"
+
+LAMPS = [
+    (1, "lamp-01-oil-pressure.png", "red"),
+    (2, "lamp-02-coolant-temp.png", "red"),
+    (3, "lamp-03-brake-system.png", "red"),
+    (4, "lamp-04-airbag-srs.png", "red"),
+    (5, "lamp-05-power-steering.png", "red"),
+    (8, "lamp-08-battery-charging.png", "red"),
+    (6, "lamp-06-engine-steady.png", "amber"),
+    (7, "lamp-07-engine-flashing.png", "amber"),
+    (9, "lamp-09-dpf.png", "amber"),
+    (10, "lamp-10-tyre-pressure.png", "amber"),
+    (11, "lamp-11-abs.png", "amber"),
+    (12, "lamp-12-esc-traction.png", "amber"),
+    (13, "lamp-13-glow-plug.png", "amber"),
+]
+
+RED = (255, 56, 56, 255)
+AMBER = (255, 176, 32, 255)
+WHITE = (236, 236, 240, 255)
+MUTED = (150, 152, 160, 255)
+BEZEL = (48, 50, 56, 255)
+WELL = (10, 10, 12, 255)
+BG = (18, 18, 22, 255)
+
+W, H = 1760, 900
+CELL = 148
+ICON = 112
+GAP = 12
+
+
+def font(size: int, bold: bool = False) -> ImageFont.FreeTypeFont:
+    name = "DejaVuSans-Bold.ttf" if bold else "DejaVuSans.ttf"
+    return ImageFont.truetype(f"/usr/share/fonts/truetype/dejavu/{name}", size)
+
+
+def rounded_rect(draw: ImageDraw.ImageDraw, box, fill, radius: int, outline=None, width: int = 1):
+    draw.rounded_rectangle(box, radius=radius, fill=fill, outline=outline, width=width)
+
+
+def draw_gauge(img: Image.Image, cx: int, cy: int, r: int, label: str) -> None:
+    overlay = Image.new("RGBA", img.size, (0, 0, 0, 0))
+    d = ImageDraw.Draw(overlay)
+    d.ellipse((cx - r - 10, cy - r - 10, cx + r + 10, cy + r + 10), fill=(28, 28, 32, 255), outline=BEZEL, width=10)
+    d.ellipse((cx - r, cy - r, cx + r, cy + r), fill=(8, 8, 10, 255), outline=(70, 72, 80, 255), width=3)
+    for i in range(9):
+        ang = math.radians(220 - i * 28)
+        inner, outer = r - 18, r - 6
+        x1, y1 = cx + inner * math.cos(ang), cy - inner * math.sin(ang)
+        x2, y2 = cx + outer * math.cos(ang), cy - outer * math.sin(ang)
+        d.line((x1, y1, x2, y2), fill=(90, 92, 100, 255), width=3)
+    rest = math.radians(220)
+    nx = cx + (r - 36) * math.cos(rest)
+    ny = cy - (r - 36) * math.sin(rest)
+    d.line((cx, cy, nx, ny), fill=(200, 40, 40, 255), width=4)
+    d.ellipse((cx - 8, cy - 8, cx + 8, cy + 8), fill=(180, 40, 40, 255))
+    f = font(18, bold=True)
+    bbox = d.textbbox((0, 0), label, font=f)
+    tw, th = bbox[2] - bbox[0], bbox[3] - bbox[1]
+    d.text((cx - tw / 2, cy + r * 0.28), label, font=f, fill=MUTED)
+    img.alpha_composite(overlay)
+
+
+def load_icon(name: str) -> Image.Image:
+    im = Image.open(ASSETS / name).convert("RGBA")
+    im = im.resize((ICON, ICON), Image.Resampling.LANCZOS)
+    return im
+
+
+def stamp_number(cell: Image.Image, n: int, colour: tuple[int, int, int, int]) -> None:
+    d = ImageDraw.Draw(cell)
+    f = font(22, bold=True)
+    badge = (8, 8, 42, 42)
+    d.ellipse(badge, fill=(0, 0, 0, 230), outline=colour, width=3)
+    text = str(n)
+    bbox = d.textbbox((0, 0), text, font=f)
+    tw, th = bbox[2] - bbox[0], bbox[3] - bbox[1]
+    d.text((25 - tw / 2, 25 - th / 2 - 1), text, font=f, fill=WHITE)
+
+
+def caption(cell: Image.Image, text: str, colour: tuple[int, int, int, int]) -> None:
+    d = ImageDraw.Draw(cell)
+    f = font(13, bold=True)
+    bbox = d.textbbox((0, 0), text, font=f)
+    tw = bbox[2] - bbox[0]
+    d.text(((CELL - tw) / 2, CELL - 22), text, font=f, fill=colour)
+
+
+def make_cell(n: int, filename: str, kind: str) -> Image.Image:
+    colour = RED if kind == "red" else AMBER
+    cell = Image.new("RGBA", (CELL, CELL), (0, 0, 0, 0))
+    d = ImageDraw.Draw(cell)
+    rounded_rect(d, (0, 0, CELL - 1, CELL - 1), WELL, 16, outline=(36, 36, 40, 255), width=2)
+    icon = load_icon(filename)
+    ox = (CELL - ICON) // 2
+    oy = (CELL - ICON) // 2 - 4
+    cell.alpha_composite(icon, (ox, oy))
+    stamp_number(cell, n, colour)
+    if n == 6:
+        caption(cell, "STEADY", AMBER)
+    elif n == 7:
+        caption(cell, "FLASHING", AMBER)
+    return cell
+
+
+def row_of(items: list[tuple[int, str, str]]) -> Image.Image:
+    n = len(items)
+    w = n * CELL + (n - 1) * GAP
+    row = Image.new("RGBA", (w, CELL), (0, 0, 0, 0))
+    x = 0
+    for item in items:
+        row.alpha_composite(make_cell(*item), (x, 0))
+        x += CELL + GAP
+    return row
+
+
+def main() -> None:
+    img = Image.new("RGBA", (W, H), BG)
+    d = ImageDraw.Draw(img)
+    rounded_rect(d, (24, 24, W - 25, H - 25), (22, 22, 26, 255), 36, outline=BEZEL, width=6)
+    rounded_rect(d, (40, 40, W - 41, H - 41), (16, 16, 20, 255), 28)
+
+    title = font(28, bold=True)
+    t = "YOUR DASHBOARD"
+    bbox = d.textbbox((0, 0), t, font=title)
+    tw = bbox[2] - bbox[0]
+    d.text(((W - tw) / 2, 56), t, font=title, fill=WHITE)
+
+    sub = font(16)
+    s = "Match the shape that is lit on your car. Reply with the number. If it flashes, say flashing."
+    bbox = d.textbbox((0, 0), s, font=sub)
+    sw = bbox[2] - bbox[0]
+    d.text(((W - sw) / 2, 94), s, font=sub, fill=MUTED)
+
+    draw_gauge(img, 148, 430, 100, "RPM")
+    draw_gauge(img, W - 148, 430, 100, "SPEED")
+
+    reds = [x for x in LAMPS if x[2] == "red"]
+    ambers = [x for x in LAMPS if x[2] == "amber"]
+    red_row = row_of(reds)
+    amber_row = row_of(ambers)
+
+    well_w = max(red_row.width, amber_row.width) + 48
+    well_h = red_row.height + amber_row.height + GAP + 88
+    well_x = (W - well_w) // 2
+    well_y = 150
+    rounded_rect(
+        d,
+        (well_x, well_y, well_x + well_w, well_y + well_h),
+        (8, 8, 10, 255),
+        20,
+        outline=(40, 42, 48, 255),
+        width=2,
+    )
+
+    label_f = font(14, bold=True)
+    d.text((well_x + 24, well_y + 16), "STOP IF LIT  ·  red", font=label_f, fill=RED)
+    d.text((well_x + 24, well_y + 48 + CELL + 8), "CHECK  ·  amber", font=label_f, fill=AMBER)
+
+    img.alpha_composite(red_row, (well_x + (well_w - red_row.width) // 2, well_y + 40))
+    img.alpha_composite(
+        amber_row,
+        (well_x + (well_w - amber_row.width) // 2, well_y + 40 + CELL + 36),
+    )
+
+    foot = font(15)
+    ftxt = "Blue / green lamps (main beam, indicators, cruise, fog, engine-cold) are not faults. If none match, say so."
+    bbox = d.textbbox((0, 0), ftxt, font=foot)
+    fw = bbox[2] - bbox[0]
+    d.text(((W - fw) / 2, H - 72), ftxt, font=foot, fill=MUTED)
+
+    img.convert("RGB").save(OUT, "PNG", optimize=True)
+    print(f"wrote {OUT} ({OUT.stat().st_size} bytes)")
+
+
+if __name__ == "__main__":
+    main()

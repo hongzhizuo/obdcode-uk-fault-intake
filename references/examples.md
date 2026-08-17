@@ -12,11 +12,11 @@ MOT records are Crown copyright. Lamp advice is original to this skill.
 
 ## Example A — main path: plate first, then lamp 6 `engine-steady`
 
-Owner starts with a plate and no lamp. The agent **draws the cluster** before any lookup. A name-only list is a fail.
+Owner starts with a plate and no lamp. The agent **shows the cluster picture** before any lookup. A name-only list is a fail.
 
 **Owner:** plate AB12CDE
 
-**Agent:** shows the 13 lamp **icons** from `assets/` via `references/lamp-picker.md`. Asks which **number matches the shape** that is lit. A name-only list is a fail.
+**Agent:** Reads `assets/cluster.png` so the dashboard picture appears, then asks which **number on the picture** is lit. A name-only list is a fail. Markdown image syntax without Read is a fail.
 
 **Owner:** 6
 
@@ -109,7 +109,7 @@ They pick lamp 6. The statement still happens. Do not invent a DVSA history.
 
 **Owner:** there's a light on
 
-**Agent:** shows the same 13 icons. Does **not** default to `engine-steady`. Does not look up a plate it does not have.
+**Agent:** shows the same cluster picture. Does **not** default to `engine-steady`. Does not look up a plate it does not have.
 
 ## Example E — diagnosis refusal (short)
 

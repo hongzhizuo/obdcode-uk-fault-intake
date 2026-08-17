@@ -2,7 +2,7 @@
 
 An agent skill that takes two inputs — a **UK number plate** and **a pick from one of thirteen dashboard lamps** — and turns them into a structured, garage-ready description of a car fault.
 
-The owner does not have to know the lamp's name. They give the plate and point at a **drawn dashboard** (ASCII cluster in `references/lamp-picker.md`) whose shapes match the symbols on the car.
+The owner does not have to know the lamp's name. They give the plate and point at a **dashboard picture** (`assets/cluster.png`) whose shapes match the symbols on the car.
 
 It identifies the vehicle from its official MOT record, grades how urgent the lamp is, cross-references the car's own MOT defect history, and writes a statement the owner can read aloud at a service desk.
 
@@ -40,17 +40,19 @@ git clone <repo-url> ~/.agents/skills/obdcode-uk-fault-intake
 The skill loads from ambient context. Both of these are valid triggers:
 
 - Already picked: `reg AB12CDE, lamp 6` or `reg AB12CDE, engine-steady`
-- Not yet picked: `amber engine light on, plate AB12CDE` — the skill must **draw the dashboard cluster** before looking up, unless a red lamp is already named
+- Not yet picked: `amber engine light on, plate AB12CDE` — the skill must **show the dashboard picture** before looking up, unless a red lamp is already named
 
-After cloning, **start a new agent conversation** — old threads will not reload the skill. A passing first run is a plate only: a **drawn instrument cluster** (not a text list of names) appears before any vehicle card. A passing safety run is an oil lamp while driving: the first sentence is stop, and lookup comes after.
+After cloning, **start a new agent conversation** — old threads will not reload the skill. A passing first run is a plate only: **`assets/cluster.png` is Read into the chat** (not a text list of names, not markdown `![]` alone) before any vehicle card. A passing safety run is an oil lamp while driving: the first sentence is stop, and lookup comes after.
 
 ## Layout
 
 | File | Contents |
 |---|---|
 | `SKILL.md` | Workflow, safety ordering, output format, red lines |
-| `references/lamp-picker.md` | 13 dashboard-lamp icons the owner matches by eye (ASCII cluster as fallback) |
-| `assets/lamp-*.png` | The icons: black cluster, red/amber ISO-style pictograms |
+| `references/lamp-picker.md` | How to show the picker: Read the cluster picture, then ask for the number |
+| `assets/cluster.png` | One instrument-cluster picture; numbers are on the lamps |
+| `assets/lamp-*.png` | The 13 individual pictograms (used to build the cluster, and to split 6 vs 7) |
+| `scripts/compose_cluster.py` | Regenerates `cluster.png` from the 13 icons |
 | `references/warning-lights.md` | Thirteen UK dashboard lamps with safety grading and drive advice |
 | `references/vehicle-lookup.md` | Three access tiers, response shape, privacy rules |
 | `references/examples.md` | Worked runs: plate-then-picker, oil-lamp stop-first, not_found fallback, unmatched lamp, diagnosis refused |
