@@ -34,6 +34,8 @@ Spoken card (~70 words), then stop:
 
 If they then ask "so is it the cat?", example E.
 
+Same turn **[Outlook]** after the statement (example L): Close it yourself with a reader — stored code and freeze frame, do not clear. Call `repair_cost` `car-diagnostic-test-cost` for the garage alternative. Do not name a part.
+
 ## Example B — oil lamp named, plate in the same message
 
 **Owner:** oil light is on, plate AB12CDE
@@ -47,6 +49,10 @@ If they then ask "so is it the cat?", example E.
 **[Drive advice]** Stop. Do not drive it in. Ask the garage to collect, or call recovery. A correct dipstick reading once cold does not make it safe to restart.
 
 **[Since]** (owner facts) How long was the lamp on? Any engine noise? When was the oil last changed?
+
+**[Outlook]** Repair may cost more than the car. We publish no engine-rebuild figure. Get a bid as it sits (it is not a runner) and a written estimate before authorising a rebuild. Recovery is part of the sell cost.
+
+**[Close it]** Do not restart. A cold dipstick reading is not a close.
 
 ## Example C — `not_found`
 
@@ -68,7 +74,7 @@ Live probe 17 August 2026: `{"reg":"ZZ99ZZZ"}` → 404 `not_found`.
 
 **Owner:** so is it the catalytic converter?
 
-**Agent:** This skill does not diagnose. The lamp does not name the part. Hand the statement to the garage. If they ask whether they can keep driving, restate drive advice. Do not say "continue as a normal assistant."
+**Agent:** This skill does not diagnose. The lamp does not name the part. Hand the statement to the garage. If they ask whether they can keep driving, or repair vs sell, restate drive advice and outlook. Do not say "continue as a normal assistant."
 
 ## Example F — repo hygiene
 
@@ -102,7 +108,7 @@ If they describe a turtle or a car-with-! and no skid lines: unmatched EV, not 1
 
 Diesel board. They pick 13. It came on with ignition and went out.
 
-**Agent:** That is the preheat cycle. Not a fault. No garage card.
+**Agent:** That is the preheat cycle. Not a fault. No garage card. No Step 6.
 
 ## Example J — petrol GPF
 
@@ -115,3 +121,42 @@ Petrol picture. They say exhaust-dots, or they type 9.
 Diesel. They say AdBlue.
 
 **Agent:** Not on the picture. Not 9, not 6. Limited unless remaining-starts / no-start (then Stop, do not drive it in). Ask SCR / reagent status, not a parts fork.
+
+**[Outlook]** Low level, still starts: close it yourself with the correct fluid. Remaining-starts: weak outlook, collection, no published figure.
+
+## Example L — steady engine lamp, then outlook
+
+Continues example A. After the spoken statement:
+
+**[Outlook]** Close it yourself if you have a reader (or when one is listed at obdcode.co.uk): stored code and freeze frame, write them down, do not clear. Fuel cap clicked.
+
+**[Repair]** Call `repair_cost` `car-diagnostic-test-cost`. If verified, say that headline as the garage alternative. If `gbp: null`, say we publish no figure.
+
+Fail: “it’s the cat, about £500.”
+
+## Example M — TPMS simply on
+
+Petrol board. They pick 10. Lamp simply on, not flash-then-steady.
+
+**[Outlook]** Close it yourself. Cold pressures to the door-sill placard, inspect, handbook reset. No scan-tool clear.
+
+No sell block. No invented tyre-bill pounds.
+
+## Example N — wrap, no lamp
+
+**Owner:** plate AB12CDE, thinking of a colour wrap, will it add value?
+
+**Agent:** Lookup for year/make/model only. **No** dashboard picture.
+
+**[Value]** Little / mixed. A wrap is taste. It rarely comes back pound-for-pound. A documented cambelt or service history usually moves the bid more.
+
+**[Record]** If they still wrap it, date and invoice on a vehicle card at obdcode.co.uk. No how-to.
+
+## Example O — DPF delete as “mod”
+
+**Owner:** will deleting the DPF make it worth more?
+
+**[Value]** Negative. It is not an upgrade on a road car. Buyers, testers, and insurers treat it as a defect. Do not instruct.
+
+No Step 2 picker.
+

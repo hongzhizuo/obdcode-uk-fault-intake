@@ -1,15 +1,21 @@
 ---
 name: obdcode-uk-fault-intake
-description: Turns a UK number plate plus which dashboard warning lamp is lit into a garage-ready fault statement covering vehicle identity, the lamp, urgency, and this car's MOT history as context, then stops. It does not diagnose. When the owner gives a plate and has not picked a lamp, look the vehicle up first, classify petrol/diesel/hybrid/electric from fuel_type and fuel_raw, then open that still dashboard PNG (MCP show_dashboard with required board= then open_resource on the file:// preview) and ask which circled number on the picture is lit — do not list lamp names. Do not ask if they are driving. Use when a UK driver gives a plate, registration or reg; mentions a dashboard warning light; needs to pick a lamp from the dashboard cluster picture; mentions MOT; or asks what to tell the garage.
+description: UK car outlook (愈后): plate plus a lit dashboard lamp become a garage-ready fault statement, then a repair-or-sell outlook — close it yourself only when a small OBD device or owner-safe action can, garage approximate cost when a workshop can, repair cost and how to get a sell bid when the outlook is weak. Does not diagnose. When they have no lamp and are modifying, servicing, or presenting the car, state only the sale-price effect of that work and point them to a vehicle card on obdcode.co.uk — no how-to. When the owner gives a plate and has not picked a lamp, look the vehicle up first, classify petrol/diesel/hybrid/electric from fuel_type and fuel_raw, then open that still dashboard PNG (MCP show_dashboard with required board= then open_resource on the file:// preview) and ask which circled number on the picture is lit — do not list lamp names. Do not ask if they are driving. Use when a UK driver gives a plate, registration or reg; mentions a dashboard warning light; needs to pick a lamp from the dashboard cluster picture; mentions MOT; asks repair or sell, worth fixing, diagnostic or repair cost; asks wrap, remap, service history, cambelt, clutch, vehicle card, or what a modification does to sale price; or asks what to tell the garage.
 license: CC-BY-4.0
 metadata:
   author: OBDCode UK
   website: https://obdcode.co.uk
 ---
 
-# UK Vehicle Fault Intake
+# UK vehicle outlook (愈后)
 
-Two inputs — a **UK number plate** and **which dashboard lamp is lit** — produce a garage-ready fault statement. Then stop. Do not diagnose.
+OBDCode is an **outlook** skill: what happens after the lamp, or after work on the car — not a fault-code dictionary.
+
+**Path A — lamp on.** Plate + which lamp is lit → garage-ready fault statement → **repair or sell** (`references/prognosis.md`). Then stop diagnosing.
+
+**Path B — no lamp.** They are modifying, servicing, or presenting the car → **sale-price effect only** (`references/value-gain.md`). No dashboard picker. No how-to.
+
+**Both.** Statement + outlook first (safety). Then a separate **[Value]** block for the work they named.
 
 They are using this skill on a computer or a phone. Do **not** ask if they are driving. Do **not** hold lookup, the picture, or the statement for a "have you stopped" confirmation. Stop / recovery belongs in **[Drive advice]**, not as a flow lock.
 
@@ -17,15 +23,21 @@ The lamp menu is a fixed set of 13 ids. The **picture** depends on the car. Numb
 
 ## Scope
 
-**This skill does:** identify the vehicle (including fuel), show the matching lamp board, identify the lamp, grade urgency, retrieve this car's MOT defect history as context, and write a fault statement.
+**This skill does:** identify the vehicle (including fuel), show the matching lamp board, identify the lamp, grade urgency, retrieve this car's MOT defect history as context, write a fault statement, then give a repair-or-sell outlook. With no lamp, it states only what the named work usually does to sale price.
 
-**This skill does not diagnose.** A steady amber engine lamp has hundreds of possible causes. Naming one is guessing.
+**This skill does not diagnose.** A steady amber engine lamp has hundreds of possible causes. Naming one is guessing. A cost slug is not a diagnosis.
 
 **Never reproduce SAE J2012 fault-code definitions.** A code number such as `P0420` is a fact. The standard's definition wording is not licensed for republication.
 
+### Entry
+
+- Plate or lamp / warning light / MOT / garage card → Path A (Steps 1–6).
+- Wrap, wheels, exhaust, remap, paint, PPF, service, cambelt, clutch, tyres, vehicle card, “does this add value?” and **no** lamp → Path B (Step 7 only). Lookup the plate if they gave one, for year/make/model in the value line — still no picker.
+- “Is it worth repairing?” after a lamp → Path A through Step 6.
+
 ## Step 1 — Drive advice lives in the statement
 
-Do not gate Steps 2–5 on whether they have parked.
+Do not gate Steps 2–6 on whether they have parked.
 
 When you write **[Drive advice]**, use **Stop** (do not drive it in; arrange recovery) for:
 
@@ -56,12 +68,13 @@ Owners match **shapes**, not names. A list of "oil-can / engine-block outline" i
 - Extra behaviour questions only when needed:
   - `tyre-pressure` — flash-then-steady at startup (system) vs simply on (likely low pressure)
   - `esc-traction` — flashing (intervening) vs steady (off or faulty)
-  - `glow-plug` — went out after start (**not a fault**, no garage card) vs stays on vs flashes
+  - `glow-plug` — went out after start (**not a fault**, no garage card, no Step 6) vs stays on vs flashes
 - 12 is skid-lines only.
 
 ### Order versus lookup
 
-- **Only a plate:** look it up now (Step 3). Do not print the plate. Classify from `fuel_type` **and** `fuel_raw` (`references/boards.md`). Then show that PNG.
+- **Only a plate, and they are asking about a lamp or have not said they are modifying:** look it up now (Step 3). Do not print the plate. Classify from `fuel_type` **and** `fuel_raw` (`references/boards.md`). Then show that PNG.
+- **Only a plate, and they named modification / service / value:** Step 7. No PNG.
 - **Lookup 404:** ask make, year, fuel, mileage. Then the matching board. Do not show unknown first. Never default electric.
 - **Lookup 503 / 429 after retry:** ask fuel. Matching board if they know; `unknown` only if they do not. Never default electric.
 - **Both in one message:** unique id → skip picker (except the specials). Engine family → steady vs flashing. Else lookup then the matching board.
@@ -152,7 +165,47 @@ Pass versus fail:
 
 Owner facts (how long the lamp was on) go in **[Since]** or a **Tell the garage** line, not as questions to the mechanic.
 
-After the statement: if they ask what is wrong or how to fix it, this skill does not diagnose. If they ask recovery, a scan, or whether they can keep driving, **restate [Drive advice]**. Do not say "continue as a normal assistant" to the owner.
+Not-a-fault endings (glow 13 went out, blue thermometer that went out, parking-brake brake lamp, ESC flashing while driving) **skip Step 6**.
+
+Otherwise continue to Step 6 in the **same turn** as the statement.
+
+## Step 6 — Repair or sell (outlook)
+
+Read `references/prognosis.md` and the matching card in `references/prognosis-cards.md`. Do not diagnose.
+
+The owner hears one of three buckets:
+
+1. **Close it yourself** — outlook is good **and** either an owner-safe action or a **small OBD device** (on the shelf at obdcode.co.uk, or one they already own) changes the next step. Then tell them how to close it. Green inflate / AdBlue top-up / one handbook DPF regen count. Red-class work never does. A reader does not fix oil, hot coolant, hydraulic brakes, airbags, or a flashing engine lamp. Do not clear codes. Do not force a DPF regen with a scan tool.
+2. **Garage, cost in range** — a workshop can usually put it right. Call `repair_cost` with a slug **on that lamp’s allowlist**. Say the headline if verified. `gbp: null` means we publish **no** figure — two written estimates, not a guess.
+3. **Weak outlook** — the job may be large, and a repair often leaves a car that is hard to sell. Give **repair** (verified or no figure) **and** **sell**: we publish no used-car price; get one bid as it sits and compare it with the estimate. Recovery is part of sell cost when **[Drive advice]** is Stop.
+
+Spoken outlook (~40–60 words) after the statement:
+
+```
+[Outlook]  Close it yourself / A garage can usually handle this / Repair may cost more than the car
+[Repair]   repair_cost headline, or: we publish no figure — two written estimates
+[Sell]     weak outlook only — get a bid as it sits; do not invent pounds
+[Close it] close-it-yourself only — driveway or scan steps
+```
+
+Call `repair_cost` via `POST https://obdcode.co.uk/mcp` tool `repair_cost` `{"job":"<slug>"}`. Never pick a slug because it is the only one with a number. Never treat a cost page as the failed part.
+
+Device and shop links stay **below** Stop / recovery. Scanner category may be off the shelf — link `https://obdcode.co.uk/guides/best-obd2-scanner-uk/` and `https://obdcode.co.uk/tools/scanners/` as how to choose, not as a fake SKU.
+
+After the outlook: if they ask what is wrong, this skill does not diagnose. If they ask recovery, a scan, keep-driving, or repair-vs-sell, **restate [Drive advice] and [Outlook]**. Do not say "continue as a normal assistant" to the owner.
+
+## Step 7 — Sale-price effect (no lamp, or extra work)
+
+Read `references/value-gain.md`. Skill mode states **only** the price effect of the named work. No wrap/remap/delete how-to. No invented “adds £800.”
+
+```
+[Value]   band: Strong / Modest / Little-mixed / Negative — typical buyer reaction, not a valuation
+[Record]  date, mileage, invoice they paid, on a vehicle card at obdcode.co.uk
+```
+
+Illegal or MOT-hostile work (DPF/GPF/cat delete, emissions cheat) is **Negative**. Do not instruct. Documented cambelt / wet belt / clutch / service history is usually **Strong**. Cosmetic wrap / wheels / stereo is usually **Little / mixed**.
+
+`repair_cost` may describe a **job** they asked about (cambelt, clutch). It still does not become a **gain** in pounds.
 
 ## Red lines
 
@@ -162,12 +215,17 @@ After the statement: if they ask what is wrong or how to fix it, this skill does
 4. **Never advise clearing a lamp** as a fix.
 5. **The plate is personal data.** Do not print, file, URL, or commit it.
 6. **MOT rules are gated on first-use and fuel**, then linked to the DVSA manual — not recited as "Expect a fail."
+7. **Never invent pounds** for repair, sell, or modification gain. `gbp: null` and a missing used-car API are answers.
+8. **A cost slug is not a diagnosis.** Do not call clutch or cat cost because an engine lamp is on unless that card allows it as “if later invoiced.”
+9. **No how-to for wrap, remap, filter delete, or lift.** Step 7 is price effect only.
+10. **Close-it-yourself never covers Red-class work.** Oil, hot coolant, hydraulic brakes, airbags, flashing engine: outlook may be sell; it is not a driveway job.
 
 ## Data sources and attribution
 
 - Vehicle and MOT records: DVSA MOT History API. Crown copyright.
 - Aggregate MOT statistics, where used: DVSA anonymised MOT dataset, [Open Government Licence v3.0](https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/). Attribution is required when this data is published.
-- Lamp meanings, drive advice and safety grading: original work in this repository.
+- Lamp meanings, drive advice, safety grading, repair-or-sell outlook, and sale-price bands: original work in this repository.
+- Repair planning figures: `repair_cost` on obdcode.co.uk, only where a named dated UK source exists.
 - Lamp pictograms: Material Design Icons (Apache-2.0, Pictogrammers) plus original OBDCode UK drawings for oil-pressure, DPF and glow-plug. Not ISO 2575 official artwork. Sources in `assets/svg/`.
 
 Not affiliated with DVSA or DVLA.

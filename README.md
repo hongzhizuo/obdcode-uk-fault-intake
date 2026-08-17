@@ -1,10 +1,13 @@
 # obdcode-uk-fault-intake
 
-An agent skill that takes two inputs — a **UK number plate** and **a pick from one of thirteen dashboard lamps** — and turns them into a structured, garage-ready description of a car fault.
+An agent skill for UK **car outlook** (愈后). Two paths:
+
+- **Lamp on:** a UK number plate plus a pick from thirteen dashboard lamps → a garage-ready fault statement, then **repair or sell** (close it yourself only when a small device or owner-safe action can; garage cost when a workshop can; repair + how to get a sell bid when the outlook is weak).
+- **No lamp:** modification, service, or presentation work → **sale-price effect only**, recorded on a vehicle card. No how-to.
 
 The owner does not have to know the lamp's name. They give the plate and point at a **dashboard picture**. Which picture they see depends on petrol, diesel, hybrid, or electric. Numbers stay **global** (9 is always DPF). Empty grey slots mark lamps this car does not have, so people do not count cells. The engine cell is 6; flashing is spoken as 7.
 
-It identifies the vehicle from its official MOT record, grades how urgent the lamp is, cross-references the car's own MOT defect history, and writes a statement the owner can read aloud at a service desk.
+It identifies the vehicle from its official MOT record, grades how urgent the lamp is, cross-references the car's own MOT defect history, writes a statement the owner can read aloud at a service desk, then gives an outlook without naming the failed part.
 
 ## Why lamps and not fault codes
 
@@ -18,9 +21,11 @@ There is a practical consequence too. A fault-code library grows without limit �
 
 ## What it does not do
 
-It does not diagnose. A steady amber engine lamp has hundreds of possible causes and naming one is guessing. The skill describes the fault precisely enough for a mechanic to narrow it down, and says plainly what remains unknown.
+It does not diagnose. A steady amber engine lamp has hundreds of possible causes and naming one is guessing. The skill describes the fault precisely enough for a mechanic to narrow it down, says plainly what remains unknown, and then says whether to close it yourself, take it to a garage, or put a repair estimate next to a sell bid.
 
-It also refuses to publish repair steps for work that shouldn't be attempted on a driveway: airbags and pyrotechnic components, brake hydraulics, high-pressure fuel systems, anything needing the car lifted.
+It also refuses to publish repair steps for work that shouldn't be attempted on a driveway: airbags and pyrotechnic components, brake hydraulics, high-pressure fuel systems, anything needing the car lifted. It refuses wrap / remap / filter-delete how-to; those questions get a sale-price band only.
+
+It never invents pounds. `repair_cost` with `gbp: null` is the answer. There is no used-car price tool, so sell cost means “get a bid,” not a made-up figure.
 
 ## What this repository is not
 
@@ -70,9 +75,12 @@ A passing first run is a plate only: matching `cluster-*.png` (not the full 13 i
 | `assets/svg/` | Vector sources: MDI Apache-2.0 plus three original pictograms |
 | `scripts/compose_cluster.py` | Rasterizes the SVGs and rebuilds all boards |
 | `scripts/show_lamps_mcp.py` | MCP: `show_dashboard` (**required** `board=`, optional `body=` speech only) / `show_lamp` |
-| `references/examples.md` | Plate-then-petrol-board, oil Stop+recovery, diesel Transit DPF, electric 12V, GPF, AdBlue, glow went out |
+| `references/examples.md` | Plate-then-petrol-board, oil Stop+recovery+weak outlook, diesel Transit DPF, electric 12V, GPF, AdBlue, glow went out, engine-scan outlook, TPMS close-it-yourself, wrap value, DPF-delete negative |
 | `references/warning-lights.md` | Thirteen UK dashboard lamps with safety grading and drive advice |
-| `references/vehicle-lookup.md` | Three access tiers, response shape, privacy rules |
+| `references/vehicle-lookup.md` | Three access tiers, response shape, privacy rules, when to call `repair_cost` |
+| `references/prognosis.md` | Repair-or-sell outlook: buckets, money rules, device rules |
+| `references/prognosis-cards.md` | Per-lamp and unmatched-path defaults |
+| `references/prognosis/deep/` | Optional notes from parallel fill-in. Live rules are the three files above; do not load this folder in a live chat |
 
 ## Vehicle lookup
 

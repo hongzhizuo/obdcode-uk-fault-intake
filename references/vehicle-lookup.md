@@ -62,9 +62,13 @@ The site enforces a daily ceiling on how many lookups reach DVSA, shared across 
 | `decode_mot_advisory` | Turn MOT certificate wording into a plain-English explanation |
 | `fault_code` | Whether a graded code is safe to drive with — refuses to guess at ungraded codes |
 | `model_mot_stats` | This model's MOT record and worst years |
-| `repair_cost` | UK cost, **only** where a named dated source exists |
+| `repair_cost` | UK **repair** planning figure, **only** where a named dated source exists. Call it in outlook (Step 6) or when they asked about a named job (Step 7). Never as a diagnosis. |
 
 `repair_cost` returns HTTP 200 with `gbp: null` and a stated reason when no verified figure exists. That null is the answer. Do not substitute your own estimate — the whole point of the null is that a made-up number is worse than none.
+
+There is no sell-price or modification-gain tool. On a weak outlook, tell them to get a bid as the car sits. On Step 7, use the bands in `references/value-gain.md` — do not invent “adds £800.”
+
+Allowlisted slugs live in `references/prognosis.md`. Do not call `clutch-replacement-cost` because an engine lamp is on.
 
 ## Tier 2 — Your own DVSA credentials
 
