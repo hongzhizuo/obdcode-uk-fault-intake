@@ -16,7 +16,7 @@ Owner starts with a plate and no lamp. The agent **shows the cluster picture** b
 
 **Owner:** plate AB12CDE
 
-**Agent:** Calls MCP `show_dashboard`, then `open_resource` on the `file://` preview under `~/.cursor`, then asks which **number on the picture** is lit. Exploring SKILL.md without those calls is a fail.
+**Agent:** Opens the still dashboard PNG (`show_dashboard` then `open_resource` on the `file://` preview) and asks which **number on the picture** is lit. A name-only list is a fail. An iframe or clickable widget is not required.
 
 **Owner:** 6
 

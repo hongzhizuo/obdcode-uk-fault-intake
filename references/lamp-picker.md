@@ -2,19 +2,19 @@
 
 Owners recognise **shapes on the cluster**, not names like "oil-pressure".
 
-The picker is **one picture**: `assets/cluster.png`. Numbers are printed on the lamps. The lamps are vector-sourced (see `assets/svg/`) and rasterized for chat. Never replace the picture with a prose list of English names.
+The picker is **one still PNG**: `assets/cluster.png`. Numbers are already printed on the lamps. There is no in-chat click UI — they look at the picture and type the number.
 
 ## How to show it (do this)
 
-Cursor 3.11 chat builds `src="data:image/${mimeType};base64,…"`. A spec `mimeType` of `image/png` becomes the illegal URL `data:image/image/png`. The MCP App iframe is behind a server-side gate (`mcp_enable_ui`, default off). So the picker is three things, all in the **same turn**:
-
 1. Call MCP `show_dashboard` on `user-obdcode-uk-fault-intake`.
-2. Immediately call `open_resource` on the `file://…/obdcode-uk-dashboard.png` URI from that tool text (it lives under `~/.cursor`, which Glass can preview). This does not use the chat `<img>` path.
+2. Call `open_resource` on the `file://` URI in that tool text (`~/.cursor/obdcode-uk-dashboard.png`). That opens the PNG in the editor preview. This **is** sending the picture.
 3. Ask exactly: "Which number matches the lamp that is lit on your car? Reply 1–13. If it is flashing, say flashing."
 
-Do **not** also list "oil-can / engine-block / battery". Never write "look at the picture above" unless you have called `show_dashboard` in this turn. Exploring `SKILL.md` is not the picker. Markdown `![]` is not the picker.
+Do **not** list oil-can / engine-block / battery. Do not wait for an iframe or a clickable widget. Exploring `SKILL.md` is not showing the picture. Markdown `![]` is not the picker.
 
-ASCII art is last resort only if MCP is disconnected **and** `open_resource` also failed.
+If `show_dashboard` is unavailable, glob `**/obdcode-uk-fault-intake/assets/cluster.png` (prefer `~/.cursor/skills/obdcode-uk-fault-intake/assets/cluster.png`) and `open_resource` that `file://` URI.
+
+ASCII art is last resort only if the PNG could not be opened.
 
 If they are driving and the lamp is 1, 2, 3, 7, or 8-with-heavy-steering/rising-temp/belt-noise: **stop first**. Showing the picture does not delay that.
 
@@ -24,9 +24,9 @@ Blue/green lights (main beam, indicators, cruise, fog, engine-cold) are not on t
 
 Accept a number, an id, or "the engine shape, not flashing".
 
-After a number, call MCP `show_lamp` with that number so they can confirm the shape. Do not re-show the whole cluster unless they say it is the wrong one.
+After a number, call `show_lamp` and `open_resource` that preview so they can confirm the shape. Do not re-show the whole cluster unless they say it is the wrong one.
 
-- **6 vs 7** (same engine outline): if they have not said steady or flashing, call `show_lamp` for 6 and for 7, and ask only that. 6 is STEADY, 7 is FLASHING.
+- **6 vs 7** (same engine outline): if they have not said steady or flashing, show 6 and 7, and ask only that. 6 is STEADY, 7 is FLASHING.
 - **12**: flashing while driving is normal; steady means off or faulty. Ask only if unclear.
 - **Never** map "a light came on" to a default lamp.
 

@@ -1,6 +1,6 @@
 ---
 name: obdcode-uk-fault-intake
-description: Turns a UK number plate plus which of 13 dashboard warning lamps is lit into a garage-ready fault statement covering vehicle identity, the lamp, urgency, and this car's MOT history as context, then stops. It does not diagnose. When the owner gives a plate or mentions a warning lamp and has not picked a number, you MUST call MCP tool show_dashboard on user-obdcode-uk-fault-intake in that same turn so the cluster MCP App appears in their chat — exploring SKILL.md is not showing the picture. Use when a UK driver gives a plate, registration or reg; mentions a dashboard warning light or warning lamp including oil pressure, engine management, EML or MIL; needs to pick a lamp from the dashboard cluster picture; sees an amber or red dashboard lamp; mentions MOT; or asks what to tell the garage.
+description: Turns a UK number plate plus which of 13 dashboard warning lamps is lit into a garage-ready fault statement covering vehicle identity, the lamp, urgency, and this car's MOT history as context, then stops. It does not diagnose. When the owner gives a plate or mentions a warning lamp and has not picked a number, open the still dashboard PNG (MCP show_dashboard then open_resource on the file:// preview) and ask which number on the picture is lit — do not list lamp names. Use when a UK driver gives a plate, registration or reg; mentions a dashboard warning light or warning lamp including oil pressure, engine management, EML or MIL; needs to pick a lamp from the dashboard cluster picture; sees an amber or red dashboard lamp; mentions MOT; or asks what to tell the garage.
 license: CC-BY-4.0
 metadata:
   author: OBDCode UK
@@ -44,7 +44,7 @@ Owners match **shapes**, not names. A list of "oil-can / engine-block outline" i
 Do not start with "what colour is it?". Do not guess the lamp from a vague description.
 
 - If the owner already named a lamp that maps to **exactly one** of the 13 ids, do not re-ask. Treat that as the pick.
-- Otherwise follow `references/lamp-picker.md`. Call MCP `show_dashboard` on `user-obdcode-uk-fault-intake`, then `open_resource` on the `file://` preview under `~/.cursor` from that tool text. Chat `<img>` and MCP App iframes are host bugs on some Cursor builds; the Glass preview is the picture they can actually see. Then ask which **number on the picture** is lit.
+- Otherwise follow `references/lamp-picker.md`. The picker is one still PNG. Call `show_dashboard`, then `open_resource` on the `file://` preview so they can see `cluster.png`. Ask which **number on the picture** is lit. A name list is not the picker. There is no clickable widget.
 - Ask them to reply with the **number printed on the matching lamp**, or an id. If it flashes, they should say flashing.
 - If the reply does not match, say so and show the picture again. **Never force the nearest lamp.**
 - After a pick, call MCP `show_lamp` with that number in the same turn as any follow-up questions, so they can confirm the shape. Do not re-show all 13.
