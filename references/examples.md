@@ -16,7 +16,7 @@ Owner starts with a plate and no lamp. The agent **draws the cluster** before an
 
 **Owner:** plate AB12CDE
 
-**Agent:** pastes the fenced dashboard drawing from `references/lamp-picker.md` in full (the box with RPM / SPEED and the 13 numbered glyphs). Asks which **number matches the shape** that is lit.
+**Agent:** shows the 13 lamp **icons** from `assets/` via `references/lamp-picker.md`. Asks which **number matches the shape** that is lit. A name-only list is a fail.
 
 **Owner:** 6
 
@@ -109,7 +109,7 @@ They pick lamp 6. The statement still happens. Do not invent a DVSA history.
 
 **Owner:** there's a light on
 
-**Agent:** pastes the same dashboard drawing. Does **not** default to `engine-steady`. Does not look up a plate it does not have.
+**Agent:** shows the same 13 icons. Does **not** default to `engine-steady`. Does not look up a plate it does not have.
 
 ## Example E — diagnosis refusal (short)
 

@@ -8,7 +8,7 @@ Grading follows a four-level scheme so it can be consumed programmatically:
 - `drive_advice` — `Yes` · `YesWithCare` · `Limited` (get it to a garage, no journeys) · `Stop` (pull over now)
 - `warnings` — `W-SUPPORT` (lifting/support) · `W-HOT` (burns/scalding) · `W-ELECTRICAL` (12V, SRS, HV) · `W-CO` (exhaust gas/ventilation)
 
-These 13 `id` values are stable. Do not rename them. An agent presenting a picker must use these ids and numbers 1–13 in this order. The exact picker to show the owner is the **drawn cluster** in `references/lamp-picker.md`, not a list of English names.
+These 13 `id` values are stable. Do not rename them. An agent presenting a picker must use these ids and numbers 1–13 in this order. The exact picker to show the owner is the **icons** in `references/lamp-picker.md` / `assets/lamp-*.png`, not a list of English names.
 
 **Colour first.** Red means stop or act now. Amber means investigate. Blue and green are informational — main beam, cruise, indicators — and are not faults.
 

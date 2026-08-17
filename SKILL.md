@@ -44,7 +44,7 @@ Owners match **shapes**, not names. A list of "oil-can / engine-block outline" i
 Do not start with "what colour is it?". Do not guess the lamp from a vague description.
 
 - If the owner already named a lamp that maps to **exactly one** of the 13 ids, do not re-ask. Treat that as the pick.
-- Otherwise paste the **dashboard drawing** from `references/lamp-picker.md` in a fenced code block, **in full, once**. The cluster graphic and the 13 mini-glyphs must appear. A numbered prose list without the drawing is not the picker.
+- Otherwise show the **13 lamp icons** from `references/lamp-picker.md` (PNG files under `assets/`). The owner must see the pictures. A numbered prose list without icons is not the picker. If images cannot render, use the ASCII cluster in that file — still a drawing, not names.
 - Ask them to reply with the **number next to the matching shape**, or an id. If it flashes, they should say flashing.
 - If the reply does not match, say so and show the drawing again. **Never force the nearest lamp.**
 - After a pick, read that id in `references/warning-lights.md` for class, drive advice, owner-safe checks, garage questions, and MOT note.

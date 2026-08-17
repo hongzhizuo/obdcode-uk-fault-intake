@@ -49,7 +49,8 @@ After cloning, **start a new agent conversation** — old threads will not reloa
 | File | Contents |
 |---|---|
 | `SKILL.md` | Workflow, safety ordering, output format, red lines |
-| `references/lamp-picker.md` | ASCII instrument cluster plus 13 shape glyphs the owner matches by eye |
+| `references/lamp-picker.md` | 13 dashboard-lamp icons the owner matches by eye (ASCII cluster as fallback) |
+| `assets/lamp-*.png` | The icons: black cluster, red/amber ISO-style pictograms |
 | `references/warning-lights.md` | Thirteen UK dashboard lamps with safety grading and drive advice |
 | `references/vehicle-lookup.md` | Three access tiers, response shape, privacy rules |
 | `references/examples.md` | Worked runs: plate-then-picker, oil-lamp stop-first, not_found fallback, unmatched lamp, diagnosis refused |
