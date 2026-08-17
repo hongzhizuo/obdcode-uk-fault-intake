@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "obdcode-uk-dashboard-lamps": {
+      "command": "python3",
+      "args": ["-u", "REPLACE_WITH_THIS_CHECKOUT/scripts/show_lamps_mcp.py"],
+      "env": {
+        "OBDCODE_IMAGE_MIME": "png"
+      }
+    }
+  }
+}

@@ -1,68 +1,36 @@
-# Repair-or-sell outlook (愈后)
+# Repair-or-sell next step
 
-OBDCode’s core is **what happens after the lamp**, not a parts guess.
+After the fault statement, give one outlook. Do not diagnose. Do not name the failed part. Do not invent pounds.
 
-After the fault statement (SKILL Step 5), give one outlook. Do not diagnose. Do not name the failed part. Do not invent pounds.
-
-Two other files sit next to this one:
-
-- Per-lamp defaults: `references/prognosis-cards.md`
-- No lamp, modification / service / presentation work: `references/value-gain.md` (skill states **sale-price effect only**)
-
-Notes under `references/prognosis/deep/` are optional. If they disagree with this file, this file wins. Do not load the whole deep folder in a live chat.
+Per-lamp defaults: [prognosis-cards.md](prognosis-cards.md). No lamp / named work: [value-gain.md](value-gain.md).
 
 ## When this step runs
 
-Run it when there is a **real fault**. Skip it when Step 5 already ended as not-a-fault:
+Skip when drive-advice already ended as not-a-fault (glow went out, blue thermometer went out, parking-brake brake lamp, ESC flashing while driving, bulb check).
 
-- Glow 13 came on with ignition and went out
-- Thermometer was **blue** and then went out
-- Brake lamp with the parking brake / EPB / Auto Hold still on, and the pedal is normal
-- ESC / traction **flashing while driving** (the system is working)
-- Key-on bulb check that went out
+If they also describe modification or service work, finish this outlook first (safety), then a separate **[Value]** block.
 
-If they also describe modification or service work, finish this outlook first (safety), then a separate **[Value]** block from `value-gain.md`.
-
-## Three buckets the owner hears
+## Three buckets
 
 | Bucket | When | What you say |
 |---|---|---|
-| **Close it yourself** | Outlook is good **and** either a driveway action is owner-safe, or a **small OBD device** (sold at obdcode.co.uk when a reader is on the shelf, or one they already own) changes the next step | How to close it. Device steps only on `device`. No cats, brakes, airbags, lifting, structural work |
-| **Garage, cost in range** | A workshop can usually put the car right without writing it off | Approximate **repair** cost if `repair_cost` returns a verified figure |
-| **Weak outlook** | The job may be large, and even a successful repair often leaves a car that is hard to sell | **Repair** cost (if verified) **and** how to get a **sell** figure. Never invent a used-car price |
+| **Close it yourself** | Outlook is good **and** an owner-safe action, or a small reader **they already own**, changes the next step | How to close it. No cats, brakes, airbags, lifting |
+| **Garage, cost in range** | A workshop can usually put the car right | Approximate **repair** cost only if `repair_cost` returns a verified headline |
+| **Weak outlook** | The job may be large, and a repair often leaves a car that is hard to sell | **Repair** (verified or no figure) **and** get a **sell** bid. Never invent a used-car price |
 
 Internal labels: `owner` · `device` · `garage` · `poor`. Speech maps `owner` and `device` to **Close it yourself**.
 
-## Order in the reply
-
-1. Spoken fault statement (~60–80 words), including **[Drive advice]**
-2. Spoken **[Outlook]** (~40–60 words)
-3. Device or shop links **below** Stop / recovery. Never above a Stop line
-4. Then stop. Do not diagnose if they ask “so what part is it?”
+Do not claim a scanner is on the shelf. If they have no reader, the garage diagnostic is the next step. You may point at how to choose a reader (`https://obdcode.co.uk/guides/best-obd2-scanner-uk/`) **below** drive advice, and only on the close-it-yourself / device path — never on a Stop reply.
 
 ## Spoken outlook
 
-```
-[Outlook]     Close it yourself / A garage can usually handle this / Repair may cost more than the car
-[Repair]      Verified headline from repair_cost, or: we publish no figure — two written estimates
-[Sell]        Only on weak outlook: we publish no used-car price. Get one bid as it sits, and compare it with the estimate
-[Close it]    Only on Close it yourself: the driveway or scan steps. Never on Red-class work
-```
-
-Pass versus fail:
-
-- Pass: “a scan is the next step; the lamp does not name the part.”
-- Fail: “it’s the clutch / cat / head gasket / alternator.”
-- Pass: quote `repair_cost` headline, including “we publish no figure.”
-- Fail: “about £400–£800” with no tool result.
-- Pass: “if the garage later invoices this job, published UK figures are …”
-- Fail: querying clutch cost because an engine lamp is on.
+See [output.md](output.md) for the block order and pass/fail.
 
 ## Money rules
 
 ### Repair
 
-Call `repair_cost` only with a slug from this file’s allowlist for **this lamp** (or unmatched path).
+Call `repair_cost` only with a job name from this allowlist for **this lamp** (or unmatched path). Never pick a job because it is the only one with a number. Never treat a cost page as the failed part. Do not speak invoice-class part names on the **first** reply.
 
 ```
 POST https://obdcode.co.uk/mcp
@@ -70,56 +38,42 @@ POST https://obdcode.co.uk/mcp
  "params":{"name":"repair_cost","arguments":{"job":"<slug>"}}}
 ```
 
-Plain HTTP if you do not speak MCP: the same job names are the slugs on `https://obdcode.co.uk/guides/<slug>/`. Prefer the tool.
-
-- `status: ok` and a headline → say the headline. It is a planning range, not a quote for this car.
-- `gbp: null` / `no_verified_price` / `no_published_job` → **that is the answer.** Say we publish no figure. Tell them to ask two local garages for a written estimate. Do not fill the gap.
-- Never call a job because it is the only slug with a number.
-- Never treat a cost page as a diagnosis.
+- Verified headline → say it is a planning range, not a quote for this car.
+- `gbp: null` / unreachable tool → **we publish no figure.** Two written estimates. Do not fill the gap.
 
 Published jobs (call only when the allowlist says so):
 
-| Slug | Typical use |
+| Job name | Typical use |
 |---|---|
-| `car-diagnostic-test-cost` | First invoice on amber engine / GPF / many “read it first” lamps |
-| `car-battery-replacement-cost` | Only if the garage later invoices a 12V battery — not “it is the battery” |
-| `brake-pads-and-discs-cost` | Only if they already have a pads/discs estimate, or as “a common brake invoice”, never as the cause of a hydraulic Stop lamp |
-| `catalytic-converter-replacement-cost` | Weak-outlook **upper bound if** the garage later invoices a converter — not “you have a failed cat” |
-| `clutch-replacement-cost` | Modification / service value, or a clutch they already named — **not** an engine lamp |
-| `dpf-cleaning-cost` | Diesel DPF path. Often `gbp: null` — still call it, still say no figure |
-| `head-gasket-repair-cost` | Coolant weak-outlook **if invoiced**. Often null. Not “it is the gasket” |
-| `alternator-replacement-cost` | Charging path **if invoiced**. Often null. Not “it is the alternator” |
+| `car-diagnostic-test-cost` | First garage invoice on amber engine / GPF / many “read it first” lamps |
+| `car-battery-replacement-cost` | Only if they already have a battery invoice, or they asked about that job |
+| `brake-pads-and-discs-cost` | Only if they already named pads/discs |
+| `catalytic-converter-replacement-cost` | Only if **they** named a converter job — never on the first flashing-engine reply |
+| `clutch-replacement-cost` | Named clutch / value-gain — **not** an engine lamp |
+| `dpf-cleaning-cost` | Diesel DPF path. Often null — still call it, still say no figure |
+| `head-gasket-repair-cost` | Only if they named gasket / head work. Often null |
+| `alternator-replacement-cost` | Only if they named charging repair. Often null |
 | `cambelt-and-water-pump-cost` | Value-gain / due belt, not a lamp cause |
 | `timing-chain-replacement-cost` | Value-gain / due chain, not a lamp cause |
 | `wet-belt-replacement-cost` | Value-gain / due wet belt, not a lamp cause |
 | `mot-cost` | Booking line, not a lamp repair |
 | `wheel-bearing-replacement-cost` | Only if they already named that job |
 
-If the allowlist is empty, do not hunt a nearby slug. Say we publish no figure for this class of job.
+If the allowlist is empty, do not hunt a nearby job. Say we publish no figure for this class of work.
 
 ### Sell
 
 There is **no** sell-price tool. Do not invent Parkers / WeBuyAnyCar / “typical trade-in” pounds.
 
-On **weak outlook** only:
-
-1. Repair: verified figure or “no published figure.”
-2. Sell: get **one** instant-sale or dealer bid **as the car sits** (runner, or for parts if it must not be driven). Get **one** written garage estimate.
-3. If the estimate is larger than the bid, selling is often the better outlook.
-4. Recovery / collection is part of the sell cost when **[Drive advice]** is Stop. Do not invent that fee either.
+On **weak outlook** only: get one bid as the car sits and one written garage estimate. Recovery is part of sell cost when **[Drive advice]** is Stop — do not invent that fee either.
 
 On garage / close-it-yourself: do not push selling.
 
-## Device and driveway rules
+## Device and driveway
 
-**Close it yourself** is allowed only when **both** are true:
+**Close it yourself** only when outlook is not `poor` **and** either `owner` (Green / handbook / intended top-up) or `device` (they already have a reader).
 
-1. Outlook is good (not `poor`)
-2. Either `owner` (Green / handbook / fluid that is meant to be topped up) or `device` (a small reader changes the next step)
-
-A reader **does not** fix oil pressure, a hot engine, a hydraulic brake lamp, an airbag, or a flashing engine lamp. Do not describe scan-tool forced DPF regen. Do not clear codes as a repair.
-
-Scanner shops on the site are sometimes **off the shelf**. Link `https://obdcode.co.uk/guides/best-obd2-scanner-uk/` and `https://obdcode.co.uk/tools/scanners/` as how-to-choose, not as a fake in-stock SKU. If they already own a reader, use that. A published diagnostic test (`car-diagnostic-test-cost`) is the garage-cost alternative.
+A reader does **not** fix oil pressure, a hot engine, a hydraulic brake lamp, an airbag, or a flashing engine lamp. Do not describe scan-tool forced DPF regen. Do not clear codes as a repair.
 
 Device steps, when allowed:
 
@@ -131,40 +85,40 @@ Device steps, when allowed:
 
 ## Default bucket by lamp
 
-Full copy: `references/prognosis-cards.md`. Do not upgrade `garage` to `poor` because the car is old unless they already have a large estimate, or the lamp is in the weak-outlook column below.
+Full copy: [prognosis-cards.md](prognosis-cards.md). Do not upgrade `garage` to `poor` because the car is old unless they already have a large estimate.
 
-| Id | Default | Repair slugs to call | Close-it-yourself |
+| Id | Default | Repair jobs to call | Close it yourself |
 |---|---|---|---|
-| `oil-pressure` | `poor` | none (no engine-rebuild job) | Dipstick once **cold** is information, not a close |
-| `coolant-temp` (red) | `poor` | `head-gasket-repair-cost` (often null) | Coolant level once **cold** is information, not a close |
-| `brake-system` (hydraulic / pedal / leak) | `poor` | none as the cause; `brake-pads-and-discs-cost` only if they already have that job named | No |
+| `oil-pressure` | `poor` | none | **No** |
+| `coolant-temp` (red) | `poor` | none on first reply; gasket job only if they named it | **No** |
+| `brake-system` (hydraulic / pedal / leak) | `poor` | none as the cause | **No** |
 | `brake-system` (parking brake was on) | skip | — | Not a fault |
-| `airbag-srs` | `garage` | none | No |
-| `power-steering` | `garage` | none | No |
-| `engine-steady` | `device` then `garage` | `car-diagnostic-test-cost` | Scan + fuel cap. Not parts |
-| `engine-flashing` | `poor` | `car-diagnostic-test-cost`; `catalytic-converter-replacement-cost` only as “if later invoiced” | No |
-| `battery-charging` | `garage` | `car-battery-replacement-cost` as “if invoiced”; `alternator-replacement-cost` (often null) | No. Do not pick battery vs alternator |
-| `battery-charging` + belt / heavy steering / rising temp (ICE) | `poor` | same, still not a diagnosis | No |
+| `airbag-srs` | `garage` | none | **No** |
+| `power-steering` | `garage` | none | **No** |
+| `engine-steady` | `device` then `garage` | `car-diagnostic-test-cost` | Scan + fuel cap if they already have a reader; else garage diagnostic. Not parts |
+| `engine-flashing` | `poor` | `car-diagnostic-test-cost` only on first reply | **No** |
+| `battery-charging` | `garage` | diagnostic or none on first reply; battery/alternator jobs only if they named that invoice | **No** |
+| `battery-charging` + belt / heavy steering / rising temp (ICE) | `poor` | same | **No** |
 | `dpf` steady, driving normally | `owner` then `garage` | `dpf-cleaning-cost` (often null) | One handbook regen. Not a scan-tool regen |
-| `dpf` flash / limp / oil over max | `poor` | `dpf-cleaning-cost` | No more motorway loops |
+| `dpf` flash / limp / oil over max | `poor` | `dpf-cleaning-cost` | **No** more motorway loops |
 | `tyre-pressure` simply on | `owner` | none | Inflate to the **placard**, inspect, reset |
 | `tyre-pressure` flash-then-steady | `garage` | none | Pressures first; then garage |
-| `abs` | `garage` | none | No hydraulics |
+| `abs` | `garage` | none | **No** hydraulics |
 | `esc-traction` steady, not switched off | `garage` | none | Toggle the button first |
 | `glow-plug` went out | skip | — | Not a fault |
-| `glow-plug` stays on / flashes | `garage` | `car-diagnostic-test-cost` | No |
+| `glow-plug` stays on / flashes | `garage` | `car-diagnostic-test-cost` | **No**. Never treat as 7 |
 
 Unmatched paths (not a 14th lamp):
 
-| Path | Default | Repair slugs | Close-it-yourself |
+| Path | Default | Repair jobs | Close it yourself |
 |---|---|---|---|
-| Petrol / hybrid GPF (exhaust-dots, not DPF) | `device` then `garage` | `car-diagnostic-test-cost` | Scan. No diesel regen copy |
-| AdBlue / urea / DEF, level low | `owner` | none | Correct fluid, handbook filler. Not 9 or 6 |
-| AdBlue remaining-starts / no-start | `poor` | none | No |
-| EV turtle / car-with-! no skids / HV text | `garage` | none (no ICE slugs) | No. Not 12 or 8 |
-| EV 12V rectangle (lamp 8 on electric board) | `garage` | `car-battery-replacement-cost` as “if invoiced” | No belt combo |
+| `unmatched-gpf` | `device` then `garage` | `car-diagnostic-test-cost` | Scan. No diesel regen copy |
+| `unmatched-adblue` level low | `owner` | none | Correct fluid, handbook filler. Not 9 or 6 |
+| `unmatched-adblue` remaining-starts / no-start | `poor` | none | **No** |
+| `unmatched-ev` | `garage` | none (no ICE jobs) | **No**. Not 12 or 8 |
+| Electric board lamp 8 (12V rectangle) | `garage` | battery job only if they named it | **No** belt combo |
 
-Vans: same buckets. Say “your Transit”. Downtime is part of outlook speech (“a day off the road”), not a made-up day-rate.
+Vans: same buckets. Say “your Transit”. Downtime is speech (“a day off the road”), not a made-up day-rate.
 
 ## Weak outlook without a sell number
 
@@ -174,8 +128,6 @@ Do not say the car is a write-off. Say the repair may cost more than a buyer wil
 
 ## After the outlook
 
-If they ask what is wrong: this skill does not diagnose.
+If they ask what is wrong: [output.md](output.md) two-turn refuse.
 
 If they ask recovery, scan, keep-driving, or repair-vs-sell: restate **[Drive advice]** and **[Outlook]**.
-
-If they ask how to wrap, remap, or delete a filter: that is not this step. Value-gain may state the **price effect** and refuse the how-to.

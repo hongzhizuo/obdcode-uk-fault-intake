@@ -1,8 +1,8 @@
 # Vehicle boards
 
-After a successful plate lookup, pick **ONE** still PNG. Numbers are **GLOBAL**: 9 is always DPF even when that slot is empty. Never renumber. **7 is not drawn** — one engine cell is 6; flashing is spoken as 7.
+After a successful plate lookup, pick **one** still PNG. Numbers are **global**: 9 is DPF only on diesel. Never renumber. **7 is not drawn** — one engine cell is 6; flashing is spoken as 7.
 
-They are on a computer or phone. Do not ask if they are driving.
+Do not ask if they are driving.
 
 ## Classify fuel → board
 
@@ -22,41 +22,43 @@ Use `vehicle.fuel_type` **and** `fuel_raw`. Apply **top row first**:
 
 Never upgrade `fuel_type=diesel` to hybrid from a marketing name.
 
-MCP: `show_dashboard` with **required** `board`. Empty args is a fail. Then `open_resource` the `file://` preview in the same turn.
+MCP: `show_dashboard` with **required** `board`. Empty args is a fail. The tool returns the PNG. Do not invent a board if the tool errors.
 
 PNG files:
 
 - `unknown` → `assets/cluster.png`
-- `petrol` → `assets/cluster-petrol.png` (ghost 9 and 13)
+- `petrol` → `assets/cluster-petrol.png` (empty slots 9 and 13, **no circled numbers** on empties)
 - `diesel` → `assets/cluster-diesel.png`
-- `hybrid` → `assets/cluster-hybrid.png` (ghost 9 and 13)
-- `electric` → `assets/cluster-electric.png` (ghost 1, 6, 9, 13)
+- `hybrid` → `assets/cluster-hybrid.png` (empty slots 9 and 13)
+- `electric` → `assets/cluster-electric.png` (empty slots 1, 6, 9, 13)
 
 ## Lamps on each board
 
-| board | circled numbers that are live | empty ghost slots |
+| board | live circled numbers | empty slots (not pickable) |
 |---|---|---|
 | unknown / diesel | 1–6, 8–13 (7 is spoken flashing on the engine cell) | — |
 | petrol / hybrid | 1–6, 8, 10–12 | 9, 13 |
 | electric | 2–5, 8, 10–12 | 1, 6, 9, 13 |
 
-## Off-board number
+## Petrol / hybrid 9 = `unmatched-gpf`
 
-Keep **this** board. Say that circled number is not printed. Ask them to read the circle on the matching shape. Widen to `unknown` only if they say **none of these shapes**.
+If they pick 9 or say exhaust-dots / petrol particulate filter: path `unmatched-gpf`. Keep this board. Not DPF. Do not say “9 is not printed, pick again.”
 
-Never switch to a **smaller** board on owner talk (especially not electric). Caption from the record as fact. Do not ask them to audit petrol vs diesel.
+Electric 9 (empty): not DPF, not GPF. Ask which **live** circled shape is lit, or none.
 
-## Unmatched paths (still write a thinner statement)
+Other empty live-number mistakes (electric 1 or 6): keep this board. That number is not on this car. Ask the circle on the matching **live** shape. Widen to `unknown` only if they say **none of these shapes**.
 
-**GPF (petrol / hybrid):** exhaust-dots, or they pick 9. Not DPF. Drive with care. Scan. No regen copy.
+Never switch to a **smaller** board on owner talk (especially not electric). Never default electric.
 
-**AdBlue (diesel):** they say AdBlue / urea / DEF. Not 9, not 6. Limited driving; remaining-starts / no-start is Stop. Ask the garage for SCR / reagent status, not a parts fork.
+## Other unmatched paths
 
-**EV:** turtle / limited power; car-with-! and no skid lines; charge plug; HV on-screen text. Not 12, not 8. Limited unless red or paired with a stop lamp. Tesla: accept pasted alert text.
+**AdBlue (diesel):** they say AdBlue / urea / DEF. Not 9, not 6. Path `unmatched-adblue`.
+
+**EV:** turtle / limited power; car-with-! and no skid lines; charge plug; HV on-screen text. Not 12, not 8. Path `unmatched-ev`. Do not open the ICE unknown board.
 
 **Blue / green:** main beam, indicators, cruise, fog. Name the status function. Ask if any circled lamp is also on. Engine-cold blue thermometer: not id 2.
 
-**Glow 13 went out after start:** not a fault. No garage card.
+**Glow 13 went out after start:** not a fault.
 
 ## Van vs car
 
@@ -105,6 +107,6 @@ Do **not** treat as vans: fiesta, focus, golf, kuga, tiguan, polo, civic, coroll
 
 ## Fallback
 
-Lookup 404 → ask fuel, then matching board. 503 → ask fuel; `unknown` only if they do not know. Never default electric.
+Lookup 404 → ask fuel, then matching board. Any transport miss (timeout, 502/504, DNS, empty body, MCP 403) → treat as 503. Ask fuel **only if the lamp is still unknown**. Named Stop lamp: write Stop this turn; do not wait for a board. Never default electric.
 
 Do not diagnose. Do not add new lamp ids.

@@ -1,171 +1,129 @@
-# Vehicle Lookup
+# Vehicle lookup
 
-A UK number plate resolves to make, model, fuel, engine size, first-use date, MOT expiry, and the full recorded MOT test history including every defect and advisory.
+A UK number plate can resolve to make, model, fuel, first-use date, MOT expiry, and MOT test history. This file is the **vehicle** lookup. Lamp identification is [lamp-picker.md](lamp-picker.md).
 
-This file is the **vehicle** lookup. Lamp identification is a numbered picker in `references/lamp-picker.md`, not something this API does. Do not skip the picker just because the plate lookup succeeded.
+This skill is **UK plates only**. A 17-character VIN, a US plate, or a NHTSA / Carfax / smog request: refuse, explain this is UK MOT only, and **stop**. Do not 400-retry a VIN as a plate.
 
-Try the tiers in order. Every tier below the first still produces a useful fault statement — it just carries less of the car's own history.
+## Consent (before the first POST)
 
-## Tier 1 — The hosted service
+Typing a plate into chat is not consent to send it to a third party.
 
-`obdcode.co.uk` runs a public, read-only lookup. **No key, no registration, no account.** Its server card declares `authentication.required: false`.
+Ask once, in plain English: you will send this registration to obdcode.co.uk, which looks up MOT History at DVSA; the plate is personal data; shall I look it up?
 
-Two transports, same data, same upstream. Pick by what your agent already speaks.
+- If they already said “look this plate up” / “check MOT” / “yes”, that is consent.
+- If they say no: Tier 3 (ask make, year, fuel, mileage). Do not POST.
+- Do not claim the thread has discarded the plate. The chat still holds it.
 
-### MCP (preferred if you speak it)
+Controller for the hosted lookup is the operator of obdcode.co.uk. Recipients: that host, then DVSA. This skill cannot delete copies from Cursor logs or the host.
 
-```
-POST https://obdcode.co.uk/mcp
-Content-Type: application/json
+## Privacy after consent
 
-{"jsonrpc":"2.0","id":1,"method":"tools/call",
- "params":{"name":"vehicle_by_plate","arguments":{"registration":"AB12CDE"}}}
-```
+- Field name on `POST /api/vehicle` is `reg`, not `registration`. Wrong key → 422.
+- **POST body only.** Never put the plate in a URL, query string, log, filename, commit, or spoken reply.
+- Refer to “your 2016 Fiesta”, never by plate.
+- For 400: “That registration was not accepted. Type it again with no spaces.” Never repeat the value.
+- Prefer `/api/vehicle`. Do not call `/api/v1/mot` (FastAPI `detail[].input` can echo the plate).
+- If the agent speaks MCP: `POST https://obdcode.co.uk/mcp` tool `vehicle_by_plate` with `{"registration":"..."}`. A foreign `Origin` on `/mcp` is **403** — treat as 503 and use `/api/vehicle`, or fall back to Tier 3. Do not retry a 403 in a loop.
 
-Streamable HTTP, protocol version `2026-07-28`. POST only — there is no GET stream and no session handshake to maintain. Server card at `https://obdcode.co.uk/.well-known/mcp/server-card.json`; readiness at `GET /mcp/health`.
-
-Send no `Origin` header, or send `https://obdcode.co.uk`. A foreign `Origin` is rejected with 403. Server-side agents normally send none, which is allowed.
-
-The tool returns `{"status":"ok","vehicle":{…}}` on success, or a bare `{"status":"…"}` token on failure. JSON-RPC reports tool failure in-band: the HTTP status stays 200, so read `status`, not the response code.
-
-### Plain HTTP
+## Tier 1 — Hosted lookup (no key)
 
 ```
 POST https://obdcode.co.uk/api/vehicle
 Content-Type: application/json
 
-{"reg":"AB12CDE"}
+{"reg":"<the plate — do not print it>"}
 ```
 
-The only accepted key is `reg`. Sending `{"registration":…}` here is a 422 with body `{"status":"invalid_request"}`, not a silent alias and not a FastAPI `detail` array whose `input` echoes the plate. That field name belongs to the older `/api/v1/mot` route, which exists for the site's own `/check/` page and returns raw DVSA shape without the advisory matching described below. Prefer `/api/vehicle`.
+No account. Daily DVSA ceiling is shared. Do not burst plates.
 
-### Status tokens
+### Status
 
-| Status | Meaning | What to tell the user |
+| Status | Tell the owner | Next |
 |---|---|---|
-| 200 | Found | Continue |
-| `invalid_registration` (400) | Fails `^[A-Z0-9]{2,8}$`, or DVSA rejected it | Ask them to re-read the plate, no spaces |
-| `not_found` (404) | DVSA has no vehicle for that plate | Check the plate; brand-new and some imported vehicles have no MOT record yet — fall back to asking the owner |
-| `rate_limited` (429) | Over 20 lookups / 10 minutes from your IP | Wait and retry once, then ask the owner |
-| `lookup_unavailable` (503) | DVSA down or busy, or the site's daily DVSA cap is spent | Ask the owner immediately |
+| 200 | (nothing about the API) | Continue. Prefer `fusion.matched`. Classify board from `fuel_type` **and** `fuel_raw`. |
+| invalid_registration (400) | That registration was not accepted. Type it again with no spaces. | Do not repeat the value. If it is a VIN, refuse UK-only and stop. |
+| not_found (404) | New or imported cars may have no MOT yet | Ask make, year, fuel, mileage, then the matching board **if the lamp is still unknown** |
+| rate_limited (429) | Wait and retry once | Then Tier 3. Do not delay a named Stop lamp for a retry |
+| lookup_unavailable (503) | Official record not available right now | Tier 3. Named Stop lamp: write Stop **this turn**; omit MOT expiry |
 
-A DVSA 429 arrives as **503 `lookup_unavailable`**, not 429. A 429 means *you* were too fast; a 503 does not.
+Map **any transport miss** (timeout, 502/504, DNS, empty body, MCP 403 Origin) to **503**. Do not hang the statement.
 
-The site enforces a daily ceiling on how many lookups reach DVSA, shared across every caller. Do not burst valid plates to probe the limits — that spends a real quota that real owners need. Invalid-format plates never reach upstream and are safe for contract checks.
+A DVSA 429 arrives as **503**. A 429 means *this client* was too fast.
 
-### The other four tools
+Never invent MOT history. If working from owner-stated make/year, say so once in [History].
 
-`vehicle_by_plate` is one of five. The rest need no plate and are worth knowing for later steps of the workflow:
+## repair_cost (same host, not a diagnosis)
 
-| Tool | Use it for |
-|---|---|
-| `decode_mot_advisory` | Turn MOT certificate wording into a plain-English explanation |
-| `fault_code` | Whether a graded code is safe to drive with — refuses to guess at ungraded codes |
-| `model_mot_stats` | This model's MOT record and worst years |
-| `repair_cost` | UK **repair** planning figure, **only** where a named dated source exists. Call it in outlook (Step 6) or when they asked about a named job (Step 7). Never as a diagnosis. |
+Call only with a job name from the allowlist in [prognosis.md](prognosis.md) for **this lamp**.
 
-`repair_cost` returns HTTP 200 with `gbp: null` and a stated reason when no verified figure exists. That null is the answer. Do not substitute your own estimate — the whole point of the null is that a made-up number is worse than none.
+```
+POST https://obdcode.co.uk/mcp
+{"jsonrpc":"2.0","id":1,"method":"tools/call",
+ "params":{"name":"repair_cost","arguments":{"job":"<slug>"}}}
+```
 
-There is no sell-price or modification-gain tool. On a weak outlook, tell them to get a bid as the car sits. On Step 7, use the bands in `references/value-gain.md` — do not invent “adds £800.”
+- `gbp: null` / `no_verified_price` → that is the answer.
+- Unreachable (timeout, 5xx, 403) → speak **we publish no figure**. Do not invent. Skipping the tool because it failed is allowed; inventing pounds is not.
+- Do not call `fault_code`. This skill does not diagnose from codes.
+- Do not call `decode_mot_advisory` in order to quote certificate wording.
+- Do not call `model_mot_stats` as a stand-in for this car’s history.
 
-Allowlisted slugs live in `references/prognosis.md`. Do not call `clutch-replacement-cost` because an engine lamp is on.
+There is no sell-price or modification-gain tool.
 
-## Tier 2 — Your own DVSA credentials
+## Tier 2 — Do not collect DVSA credentials in this chat
 
-If the user or operator holds their own DVSA MOT History API credentials, call DVSA directly instead.
-
-Registration is free at the [DVSA MOT History API portal](https://documentation.history.mot.api.gov.uk/mot-history-api/register) and takes roughly one to five working days. It requires a token URL, client ID, client secret and API key, exchanged for a bearer token via client credentials.
-
-Read these from the environment. Never accept credentials pasted into a chat, and never write them to a file.
-
-This tier returns raw DVSA shape — no advisory matching, no site deep links.
+Do not ask the owner for MOT History API client secrets. If hosted lookup is down, use Tier 3. Operators who run their own DVSA integration do that **outside** this skill.
 
 ## Tier 3 — Ask the owner
 
-Always available, needs no network, and is the correct fallback whenever the tiers above fail.
+Make, model, year, fuel, mileage. Say once that you could not pull the MOT record. Carry on thinner.
 
-Ask for: make, model, year or registration letter, engine size, fuel, and approximate mileage.
+## Response shape (abridged)
 
-What is lost: the car's own MOT defect history, which is the highest-value part of step 4 in the main workflow. Say so once — "I can't pull your MOT record, so I'm working from what you've told me" — and carry on. Do not silently degrade.
-
-Do not substitute general model-level statistics for this specific car's history and present them as the same thing.
-
-## Response shape
-
-From tier 1. Abridged; the plate appears nowhere in it.
+The plate appears nowhere in a success body. Do not quote `defects[].text`. Use `fusion.matched` slugs only.
 
 ```json
 {
   "vehicle": {
     "make": "FORD", "model": "FIESTA",
     "fuel_type": "petrol", "fuel_raw": "Petrol",
-    "year": 2016, "engine_cc": "998", "colour": "Blue",
+    "year": 2016, "engine_cc": "998",
     "mot_due": "2027-03-01", "first_used": "2016-03-14"
   },
-  "mot": {
-    "tests": [
-      {
-        "date": "2026-03-02", "result": "PASSED", "expiry": "2027-03-01",
-        "odometer": "61201", "odometer_unit": "MI",
-        "defects": [
-          {
-            "text": "Front Brake pad(s) wearing thin (1.1.13 (a) (ii))",
-            "type": "ADVISORY", "dangerous": false,
-            "match": {"slug": "brake-pads-wearing-thin", "confidence": 1.0,
-                      "url": "/advisories/brake-pads-wearing-thin/"}
-          }
-        ]
-      }
-    ],
-    "test_count": 2, "last_test_date": "2026-03-02",
-    "last_result": "PASSED", "advisories_last_test": 3
-  },
   "fusion": {
-    "matched": [{"slug": "brake-pads-wearing-thin", "count": 1,
-                 "latest": "2026-03-02", "url": "/advisories/brake-pads-wearing-thin/"}],
+    "matched": [{"slug": "brake-pads-wearing-thin", "count": 1, "latest": "2026-03-02"}],
     "unmatched_count": 1, "threshold": 0.75, "enabled": true
   },
-  "links": {"make": "/mot/ford/", "model": "/mot/ford-fiesta/"},
-  "sources": {"dvsa": true, "dvla_ves": false}
+  "sources": {"dvsa": true}
 }
 ```
 
-`fuel_type` is normalised to `petrol` / `diesel` / `hybrid` / `electric` / `unknown`; `fuel_raw` keeps the upstream wording.
+`fuel_type` is `petrol` / `diesel` / `hybrid` / `electric` / `unknown`. Classify the picture from **both** fields ([boards.md](boards.md)).
 
-Classify the lamp picture from **both** fields (`references/boards.md`). `fuel_type` alone is not enough: hybrid + Electric Diesel is the diesel picture; hybrid + missing `fuel_raw` is `unknown` (or ask petrol vs diesel hybrid). After a successful lookup, if the lamp is not yet identified, show that picture immediately — `board` is required. Empty `show_dashboard` args is a fail.
+`fusion.matched` count > 1 means the same MOT slug appeared on more than one certificate — a prior note, not proof of today’s lamp.
 
-There is no van or body-type field. Optional `body=van` is speech only ("your Transit"). Same PNG as the fuel picture. Do not call it a van board.
+If `match` is null, skip that defect. Do **not** quote raw certificate `text`.
 
-If lookup fails, ask the owner for fuel with make, year, and mileage, then the matching picture. `unknown` only if they do not know fuel. Never default electric.
+## History speech
 
-Tests come newest first. Odometer readings across tests give an annual mileage, worth mentioning when a fault is mileage-related.
+Same-system allowlist (include a slug only if it is in-family for this lamp):
 
-Defect `type` is one of `ADVISORY`, `MINOR`, `MAJOR`, `DANGEROUS`, `FAIL` or `USER ENTERED`. Treat any entry with `"dangerous": true` as significant even on a test the car passed.
+| Lamp / path | Allowlist family |
+|---|---|
+| Engine management | emissions, exhaust, catalyst, lambda (not a diagnosis) |
+| DPF | diesel particulate filter |
+| Battery / charging | battery security, auxiliary drive belt |
+| Brake system | brake fluid, pipes, hoses, discs, pads |
+| ABS | ABS, wheel speed sensor |
+| Tyre pressure | tyre condition, tread, valve |
+| Power steering | steering, power steering fluid |
 
-### Use `fusion`, not your own matching
+Quote **slug, date, type** only. End with: **Source: DVSA MOT History, Crown copyright. This does not show the cause of today’s lamp.**
 
-`fusion.matched` is the part worth having: DVSA's raw certificate wording already resolved to a known advisory, deduped across tests, with a count, a latest date and an explanatory URL. A repeat entry means the same fault has been flagged more than once and not fixed — the single most useful thing you can hand a garage.
-
-`match` is `null` below a 0.75 confidence threshold, and `unmatched_count` tells you how many defects that happened to. A null is honest: the service refuses to force a weak match. Quote the raw `text` for those rather than guessing at what they mean.
-
-Registration, MOT test numbers, and other unique upstream ids are stripped before shaping.
-
-## Privacy
-
-The plate is personal data. The hosted service keeps registrations out of URLs and access logs, keys its cache by SHA-256 of the plate, and never echoes the plate in a success or error body. An integration must not undo that.
-
-- Use the plate for the lookup. Do not print it afterwards.
-- Never write it to a file, a log, a commit message, a filename, or a URL.
-- Refer to the vehicle as "your 2016 Fiesta", never by plate.
-- Do not cache the response anywhere the user did not ask for.
-- If asked to save the fault statement, strip the plate from it first.
-- They already typed it in the first message. Do not ask consent again. Do not claim the thread has discarded it.
-- For 400: "That registration was not accepted. Type it again with no spaces." Never repeat the value.
+If nothing in-family, one negative line is enough.
 
 ## Terms
 
-Vehicle and MOT records are Crown copyright. State the source when displaying them.
+Vehicle and MOT records are Crown copyright. State the source when displaying them. This skill does not relicense Crown records as CC-BY-4.0.
 
-Aggregate MOT statistics behind `model_mot_stats` come from the DVSA anonymised MOT dataset under the [Open Government Licence v3.0](https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/), which requires attribution on publication.
-
-Per-vehicle lookups come from the DVSA MOT History **trade** API. Its terms govern what a licensee may do with the data, including re-exposure through an intermediary. That is a licensing question for whoever operates the endpoint, not something an integrator resolves — if you run your own deployment under tier 2, check your own terms.
+Aggregate MOT statistics behind `model_mot_stats` are OGL v3.0. This skill should not quote them on the spoken card.

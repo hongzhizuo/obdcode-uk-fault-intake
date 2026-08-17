@@ -24,7 +24,7 @@ Each card is: bucket, repair call, sell talk, close-it-yourself, red lines.
 
 **Bucket:** `poor`
 
-**Repair:** You may call `head-gasket-repair-cost`. It is often `gbp: null` — then say no figure. Do not say the gasket has failed. A caught-early thermostat job has no published slug: still no invented pounds.
+**Repair:** No job name on the first reply. If **they** later name head or gasket work, you may call `head-gasket-repair-cost` (often `gbp: null`). Do not say the gasket has failed.
 
 **Sell:** If they kept driving, the estimate can exceed what the car will fetch. Bid as it sits vs written estimate.
 
@@ -76,11 +76,11 @@ Each card is: bucket, repair call, sell talk, close-it-yourself, red lines.
 
 **Bucket:** `device` then `garage` if the lamp stays after a read (or they have no reader).
 
-**Repair:** Always call `car-diagnostic-test-cost` for the garage path. Do **not** call cat, clutch, or belt slugs because this lamp is on.
+**Repair:** Always call `car-diagnostic-test-cost` for the garage path. Do **not** call cat, clutch, or belt jobs because this lamp is on.
 
 **Sell:** Not first-line. If a later garage estimate is large, switch speech to weak outlook then.
 
-**Close it yourself:** Fuel cap clicked. Then a small reader: stored code **and** freeze frame, written down, **not cleared**. Link scanner guide / category below drive advice. Off-the-shelf SKUs: do not invent stock.
+**Close it yourself:** Fuel cap clicked. If they **already own** a reader: stored code **and** freeze frame, written down, **not cleared**. If they do not, garage diagnostic. Do not claim a scanner is in stock.
 
 **Red lines:** Not “it’s the lambda / cat / coil.”
 
@@ -90,7 +90,7 @@ Each card is: bucket, repair call, sell talk, close-it-yourself, red lines.
 
 **Bucket:** `poor`
 
-**Repair:** `car-diagnostic-test-cost`. You may add `catalytic-converter-replacement-cost` only as “if the garage later invoices a converter” — not as today’s diagnosis. Aftertreatment damage is why outlook is weak, not a named part.
+**Repair:** `car-diagnostic-test-cost` only on the first reply. Call `catalytic-converter-replacement-cost` only if **they** named a converter job — not as today’s diagnosis.
 
 **Sell:** Recovery + bid as it sits vs any large exhaust / engine estimate.
 
@@ -102,7 +102,7 @@ Each card is: bucket, repair call, sell talk, close-it-yourself, red lines.
 
 **Bucket:** `garage`. ICE + heavy steering / rising temp / belt noise: `poor` (Stop already in drive advice). EV: stay `garage`, no belt combo.
 
-**Repair:** You may call `car-battery-replacement-cost` as “if they invoice a 12V battery” and `alternator-replacement-cost` (often null) as “if they invoice charging repair.” Do not choose which it is.
+**Repair:** No battery or alternator job name on the first reply. If **they** name that invoice, you may call the matching job (alternator often null). Do not choose which it is.
 
 **Sell:** On the ICE Stop combo: bid vs estimate; the car may not remain a runner.
 
@@ -180,7 +180,7 @@ Each card is: bucket, repair call, sell talk, close-it-yourself, red lines.
 
 ---
 
-## Unmatched petrol / hybrid GPF
+## Path `unmatched-gpf` (petrol / hybrid)
 
 Not lamp 9. Not diesel regen.
 
@@ -192,7 +192,7 @@ Not lamp 9. Not diesel regen.
 
 ---
 
-## Unmatched AdBlue / urea / DEF
+## Path `unmatched-adblue`
 
 Not 9, not 6.
 
@@ -204,7 +204,7 @@ Not 9, not 6.
 
 ---
 
-## Unmatched EV (turtle / car-with-! no skids / HV or charge-plug message)
+## Path `unmatched-ev` (turtle / car-with-! no skids / HV or charge-plug message)
 
 Not 12, not 8, not an ICE unknown board.
 
@@ -222,6 +222,6 @@ Not 12, not 8, not an ICE unknown board.
 
 **Bucket:** `garage`
 
-**Repair:** `car-battery-replacement-cost` as “if invoiced.” No alternator / belt story.
+**Repair:** Battery job only if they named a 12V battery invoice. No alternator / belt story.
 
 **Close it yourself:** No.

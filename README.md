@@ -1,120 +1,99 @@
-# obdcode-uk-fault-intake
+# UK dashboard lamp to garage card
 
-An agent skill for UK **car outlook** (愈后). Two paths:
+A Cursor skill for UK drivers: **number plate + which warning lamp is lit** → a garage-ready statement, then repair or sell. It is **not** a fault-code dictionary.
 
-- **Lamp on:** a UK number plate plus a pick from thirteen dashboard lamps → a garage-ready fault statement, then **repair or sell** (close it yourself only when a small device or owner-safe action can; garage cost when a workshop can; repair + how to get a sell bid when the outlook is weak).
-- **No lamp:** modification, service, or presentation work → **sale-price effect only**, recorded on a vehicle card. No how-to.
+Why install: the owner usually has a lamp, not a `P` code. This pack identifies the vehicle, shows a fuel-matched dashboard picture, writes what to tell the garage, and says whether to close it yourself, book a workshop, or put an estimate next to a sell bid. It does not diagnose. It does not invent pounds.
 
-The owner does not have to know the lamp's name. They give the plate and point at a **dashboard picture**. Which picture they see depends on petrol, diesel, hybrid, or electric. Numbers stay **global** (9 is always DPF). Empty grey slots mark lamps this car does not have, so people do not count cells. The engine cell is 6; flashing is spoken as 7.
+![Dashboard picker (petrol board)](assets/cluster-petrol.png)
 
-It identifies the vehicle from its official MOT record, grades how urgent the lamp is, cross-references the car's own MOT defect history, writes a statement the owner can read aloud at a service desk, then gives an outlook without naming the failed part.
+Sample spoken card (oil lamp, fictional plate `AB12CDE` → “your 2016 Fiesta”):
 
-## Why lamps and not fault codes
-
-Most OBD sites are fault-code dictionaries. This one deliberately is not, for two reasons.
-
-**The owner usually hasn't scanned anything.** A warning lamp came on. Asking them for a `P` code assumes a tool they don't own and a step they haven't taken.
-
-**Fault-code definitions aren't ours to publish.** Code numbers such as `P0420` are facts and free to use, but the SAE J2012 wording that defines them is copyrighted and licensed for internal use, not for republication. Datasets circulating as "CC0 J2012" have no upstream authorisation behind them. This skill sidesteps the problem entirely: it needs no code definitions, because the input is a lamp.
-
-There is a practical consequence too. A fault-code library grows without limit — over a thousand codes, and more every year. A UK dashboard has about thirteen lamps, and that number does not grow.
+```
+[Drive advice] Stop. Do not drive it in. Ask the garage to collect, or call recovery.
+[Outlook]      Repair may cost more than the car. We publish no engine-rebuild figure.
+```
 
 ## What it does not do
 
-It does not diagnose. A steady amber engine lamp has hundreds of possible causes and naming one is guessing. The skill describes the fault precisely enough for a mechanic to narrow it down, says plainly what remains unknown, and then says whether to close it yourself, take it to a garage, or put a repair estimate next to a sell bid.
+- Diagnose a part from a lamp
+- Republish SAE J2012 code definitions
+- VIN / US plate / NHTSA / Carfax / smog / USD quotes (refuse and stop)
+- Driveway work on oil, hot coolant, hydraulic brakes, airbags, or a flashing engine lamp
+- Wrap / remap / filter-delete how-to (sale-price band only)
+- Invent repair, sell, or “adds £800” figures
+- Quote MOT certificate wording (fusion slug + DVSA / Crown line only)
 
-It also refuses to publish repair steps for work that shouldn't be attempted on a driveway: airbags and pyrotechnic components, brake hydraulics, high-pressure fuel systems, anything needing the car lifted. It refuses wrap / remap / filter-delete how-to; those questions get a sale-price band only.
-
-It never invents pounds. `repair_cost` with `gbp: null` is the answer. There is no used-car price tool, so sell cost means “get a bid,” not a made-up figure.
-
-## What this repository is not
-
-This is the public skill only. It is not the [obdcode.co.uk](https://obdcode.co.uk) website source — that lives elsewhere.
-
-It does not contain DVSA credentials, API keys, or anything that would let you call the MOT History API as DVSA.
-
-It is not a fault-code dictionary and does not include SAE J2012 definitions.
-
-## Install
+## Install (Python 3.10+)
 
 ```bash
-git clone <repo-url> ~/.cursor/skills/obdcode-uk-fault-intake
+git clone https://github.com/hongzhizuo/obdcode-uk-fault-intake.git \
+  ~/.cursor/skills/obdcode-uk-fault-intake
+cd ~/.cursor/skills/obdcode-uk-fault-intake
+python3 --version   # 3.10 or newer (the MCP server uses dict | None)
+python3 scripts/show_lamps_mcp.py --self-test
+python3 scripts/install_mcp.py
 ```
 
-Point `~/.cursor/mcp.json` at **that same checkout**:
+`install_mcp.py` merges `mcp.json.example` into `~/.cursor/mcp.json` using this checkout’s absolute path. Reload MCP, then start a **new** Agent chat. Old threads will not pick up the tools.
 
-```json
-"obdcode-uk-fault-intake": {
-  "command": "python3",
-  "args": ["-u", "/ABS/PATH/TO/obdcode-uk-fault-intake/scripts/show_lamps_mcp.py"]
-}
-```
+Cursor 3.11 concatenates `data:image/${mimeType}`. The installer sets `OBDCODE_IMAGE_MIME=png` for that host. Other MCP hosts should omit the env var so the server sends spec `image/png`.
 
-Reload MCP, then start a **new** Agent chat. Old threads will not reload the skill or the tools.
+### Claude Desktop / other MCP hosts
 
-Triggers:
+Copy the `mcpServers` block from `mcp.json.example`, point `args` at `scripts/show_lamps_mcp.py` in this checkout, and **do not** set `OBDCODE_IMAGE_MIME`. There is no `open_resource` on those hosts; the tool returns the PNG.
 
-- Already picked: `reg AB12CDE, lamp 6` or `reg AB12CDE, engine-steady`
-- Not yet picked: `plate AB12CDE` — lookup, then `show_dashboard` with **required** `board=`, then `open_resource`, then ask which circled number is lit
-- Named engine light: ask steady vs flashing; do not open the cluster unless they are unsure
+Triggers: `@obdcode-uk-dashboard-lamps` (model invocation is off until you delete `disable-model-invocation`). Worked turns are in `references/examples.md`. Do not ask if they are driving.
 
-Do not ask if they are driving. Drive advice belongs in the statement.
-
-A passing first run is a plate only: matching `cluster-*.png` (not the full 13 if fuel is known; empty `board` is a fail). A passing oil run names the oil-can and puts Stop + recovery in **[Drive advice]**, without a parking quiz.
+A passing first lamp run: consent, then matching `cluster-*.png` (empty `board` is a fail). A passing oil run: Stop + recovery in **[Drive advice]**, no parking quiz, no shop link above Stop.
 
 ## Layout
 
 | File | Contents |
 |---|---|
-| `SKILL.md` | Workflow, safety ordering, output format, red lines |
-| `references/boards.md` | Fuel → board (petrol / diesel / hybrid / electric / unknown); numbers stay 1–13 globally |
-| `references/lamp-picker.md` | How to show the picker: Read the cluster picture, then ask for the number |
-| `assets/cluster.png` | Unknown / full board (all 13) |
-| `assets/cluster-*.png` | Per-fuel boards: petrol, diesel, hybrid, electric |
-| `assets/lamp-*.png` | The 13 glowing lamps (rasterized from SVG for chat) |
-| `assets/svg/` | Vector sources: MDI Apache-2.0 plus three original pictograms |
-| `scripts/compose_cluster.py` | Rasterizes the SVGs and rebuilds all boards |
-| `scripts/show_lamps_mcp.py` | MCP: `show_dashboard` (**required** `board=`, optional `body=` speech only) / `show_lamp` |
-| `references/examples.md` | Plate-then-petrol-board, oil Stop+recovery+weak outlook, diesel Transit DPF, electric 12V, GPF, AdBlue, glow went out, engine-scan outlook, TPMS close-it-yourself, wrap value, DPF-delete negative |
-| `references/warning-lights.md` | Thirteen UK dashboard lamps with safety grading and drive advice |
-| `references/vehicle-lookup.md` | Three access tiers, response shape, privacy rules, when to call `repair_cost` |
-| `references/prognosis.md` | Repair-or-sell outlook: buckets, money rules, device rules |
+| `SKILL.md` | One-page workflow, 13 ids, red lines |
+| `references/drive-advice.md` | The only Stop list. Colour does not set Stop |
+| `references/boards.md` | Fuel → board; unmatched paths |
+| `references/lamp-picker.md` | Show the PNG, ask for the circled number |
+| `references/vehicle-lookup.md` | Consent, POST `/api/vehicle`, failure modes |
+| `references/output.md` | Spoken card, pass/fail, diagnosis refuse |
+| `references/prognosis.md` | Repair-or-sell buckets and money rules |
 | `references/prognosis-cards.md` | Per-lamp and unmatched-path defaults |
-| `references/prognosis/deep/` | Optional notes from parallel fill-in. Live rules are the three files above; do not load this folder in a live chat |
+| `references/value-gain.md` | No-lamp sale-price bands |
+| `references/examples.md` | Pass/fail transcripts (plate `AB12CDE` only) |
+| `assets/cluster-*.png` | Fuel boards |
+| `scripts/show_lamps_mcp.py` | `show_dashboard` / `show_lamp` |
+| `scripts/install_mcp.py` | Merge `~/.cursor/mcp.json` |
+| `mcp.json.example` | Complete `mcpServers` block |
+
+Do not glob the tree. Do not load `archive/`.
 
 ## Vehicle lookup
 
-Three tiers, tried in order. Everything below the first still produces a useful statement — it just carries less of the car's own history.
+1. **Hosted** `POST https://obdcode.co.uk/api/vehicle` `{"reg":"..."}` — no key. Ask consent first.
+2. **Ask the owner** if they refuse, or if lookup returns 404/503/transport miss.
 
-1. **The hosted service at `obdcode.co.uk`** — public and read-only, **no key or account needed**. Either `POST /mcp` (MCP, tool `vehicle_by_plate`) or `POST /api/vehicle` (plain JSON). Same data either way. `/api/vehicle` uses the JSON key `reg`, not `registration`.
-2. **Your own DVSA credentials** — free registration at the [MOT History API portal](https://documentation.history.mot.api.gov.uk/mot-history-api/register), roughly one to five working days.
-3. **Ask the owner** — make, model, year, fuel, mileage. Always available, no network needed.
-
-Tier 1 also resolves DVSA certificate wording to known advisories. A slug that appears on more than one certificate is a prior note, not proof of today's lamp.
-
-The service enforces a daily ceiling on lookups that reach DVSA, shared across all callers. Do not burst plates to probe it.
-
-A number plate is personal data. Do not print, file, URL, or commit it after the lookup.
+Do not collect DVSA API secrets in chat. The site has a shared daily DVSA ceiling — do not burst plates.
 
 ## Safety
 
-Stop / recovery is **[Drive advice]** in the statement, not a flow lock and not a "are you driving?" quiz. They are using this on a computer or phone. Oil, red coolant, hydraulic brake (parking brake off), flashing engine, and ICE battery-plus-belt still grade as Stop in that block. Airbag is Limited. MOT outcome language is gated on first-use date and fuel.
+Stop / recovery is **[Drive advice]**, not a “are you driving?” quiz. Oil, red coolant, hydraulic brake (parking brake off), flashing engine, and ICE battery-plus-belt still grade as Stop. Airbag is Limited. Colour does not mean Stop.
 
 ## Data sources
 
-- Vehicle and MOT records: DVSA MOT History API. Crown copyright.
-- Aggregate MOT statistics, where used: DVSA anonymised MOT dataset, [Open Government Licence v3.0](https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/). Attribution required on publication.
-- Lamp meanings, safety grading and drive advice: original work in this repository.
-- Lamp pictograms: Material Design Icons (Apache-2.0) plus original OBDCode UK drawings. See `assets/svg/NOTICE`.
+- Vehicle and MOT records: DVSA MOT History API. Crown copyright. Spoken History must say so.
+- Lamp meanings, drive advice, and outlook: original work in this repository.
+- Lamp pictograms: Material Design Icons (Apache-2.0, Pictogrammers) plus original OBDCode UK drawings. See `assets/svg/NOTICE` and `LICENSE-APACHE-2.0`.
 
 Not affiliated with DVSA or DVLA. Guidance is general information for UK drivers, not a substitute for professional diagnosis.
 
 ## Licence
 
-- Original skill text (workflow, 13-lamp reference, picker, examples) and original pictograms (oil-pressure, DPF, glow-plug): **CC-BY-4.0** (see `LICENSE`). Attribution: OBDCode UK.
-- Vendored Material Design Icons in `assets/svg/`: **Apache-2.0**, Pictogrammers (see `assets/svg/NOTICE` and `PICTOGRAMMERS-LICENSE.txt`).
-- Vehicle/MOT records retrieved at runtime: Crown copyright, via DVSA MOT History API. Not licensed by this file.
-- Aggregate MOT statistics if quoted: OGL v3.0, attribution required.
+Mixed. See `LICENSE`.
+
+- Original skill text and original pictograms (oil-pressure, DPF, glow-plug): **CC-BY-4.0**
+- Vendored Material Design Icons: **Apache-2.0** (`LICENSE-APACHE-2.0`)
+- Runtime MOT records: Crown copyright, not this file
+- Aggregate MOT statistics if quoted: OGL v3.0
 
 ## Contact
 

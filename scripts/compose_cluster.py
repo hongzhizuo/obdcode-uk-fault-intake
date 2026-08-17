@@ -47,7 +47,7 @@ BOARDS = {
     },
     "petrol": {
         "file": "cluster-petrol.png",
-        "tag": "Petrol. Empty slots are not on this car. Exhaust-dots: say GPF, not 9.",
+        "tag": "Petrol. Empty slots are not on this car. Exhaust-dots or empty DPF slot: GPF path, not diesel DPF.",
         "left": "RPM",
         "red": [1, 2, 3, 4, 5, 8],
         "amber": [6, "ghost-9", 10, 11, 12, "ghost-13"],
@@ -61,7 +61,7 @@ BOARDS = {
     },
     "hybrid": {
         "file": "cluster-hybrid.png",
-        "tag": "Hybrid. Engine and 12V still apply. Empty slots are not on this car.",
+        "tag": "Hybrid. Engine and 12V still apply. Empty DPF slot: GPF path, not diesel DPF.",
         "left": "RPM",
         "red": [1, 2, 3, 4, 5, 8],
         "amber": [6, "ghost-9", 10, 11, 12, "ghost-13"],
@@ -188,7 +188,6 @@ def make_cell(n: int, png_name: str, kind: str) -> Image.Image:
 
 
 def make_ghost(n: int, kind: str) -> Image.Image:
-    colour = RED if kind == "red" else AMBER
     cell = Image.new("RGBA", (CELL, CELL), (0, 0, 0, 0))
     d = ImageDraw.Draw(cell)
     d.rounded_rectangle((0, 0, CELL - 1, CELL - 1), radius=16, outline=(70, 72, 80, 255), width=2)
@@ -196,8 +195,7 @@ def make_ghost(n: int, kind: str) -> Image.Image:
     t = "NOT THIS CAR"
     bbox = d.textbbox((0, 0), t, font=f)
     tw = bbox[2] - bbox[0]
-    d.text(((CELL - tw) / 2, CELL / 2 - 18), t, font=f, fill=MUTED)
-    stamp_number(cell, n, colour)
+    d.text(((CELL - tw) / 2, CELL / 2 - 8), t, font=f, fill=MUTED)
     return cell
 
 
@@ -265,16 +263,20 @@ def compose_cluster(board_id: str, spec: dict) -> None:
     )
 
     label_f = font(14, bold=True)
-    d.text((well_x + 24, well_y + 16), "STOP IF LIT  ·  red", font=label_f, fill=RED)
-    d.text((well_x + 24, well_y + 48 + CELL + 8), "CHECK  ·  amber", font=label_f, fill=AMBER)
+    d.text((well_x + 24, well_y + 16), "RED", font=label_f, fill=RED)
+    d.text((well_x + 24, well_y + 48 + CELL + 8), "AMBER", font=label_f, fill=AMBER)
 
     img.alpha_composite(red_row, (well_x + (well_w - red_row.width) // 2, well_y + 40))
     img.alpha_composite(amber_row, (well_x + (well_w - amber_row.width) // 2, well_y + 40 + CELL + 36))
 
     foot = font(15)
-    ftxt = "Circled number, not a count. Blue/green are not faults. If none of these shapes match, say none."
+    ftxt = "Circled number, not a count. Colour does not mean Stop. If none of these shapes match, say none."
     bbox = d.textbbox((0, 0), ftxt, font=foot)
-    d.text(((W - (bbox[2] - bbox[0])) / 2, H - 72), ftxt, font=foot, fill=MUTED)
+    d.text(((W - (bbox[2] - bbox[0])) / 2, H - 88), ftxt, font=foot, fill=MUTED)
+    credit = font(12)
+    ctxt = "Icons: Pictogrammers (Apache-2.0) · oil / DPF / glow original (c) OBDCode UK"
+    bbox = d.textbbox((0, 0), ctxt, font=credit)
+    d.text(((W - (bbox[2] - bbox[0])) / 2, H - 58), ctxt, font=credit, fill=MUTED)
 
     out = ASSETS / spec["file"]
     img.convert("RGB").save(out, "PNG", optimize=True)

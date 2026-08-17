@@ -1,4 +1,20 @@
-SPDX-License-Identifier: CC-BY-4.0
+SPDX-License-Identifier: LicenseRef-OBDCode-mixed
+
+This package is mixed-licence. The Creative Commons text below covers only
+original OBDCode UK skill markdown and the original pictograms listed in
+assets/svg/NOTICE (oil-pressure, DPF, glow-plug, plus the 05 bang and 07 ticks).
+
+Not licensed as CC-BY-4.0:
+- Material Design Icons in assets/svg/ — Apache-2.0 (Pictogrammers). See
+  LICENSE-APACHE-2.0 and assets/svg/NOTICE.
+- Vehicle and MOT records retrieved at runtime — Crown copyright, DVSA.
+  This package does not grant a Crown licence. Spoken History may name a
+  fusion slug, a date, and a type, then a DVSA / Crown line. Do not quote
+  certificate wording.
+- Aggregate MOT statistics if quoted — Open Government Licence v3.0,
+  attribution required.
+
+Package SPDX: CC-BY-4.0 AND Apache-2.0, with Crown / OGL material excluded.
 
 Attribution 4.0 International (CC BY 4.0)
 Copyright (c) 2026 OBDCode UK

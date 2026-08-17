@@ -1,10 +1,10 @@
-# Sale-price effect of work (改装 / 维修增值)
+# Sale-price effect of work
 
-Some people have **no warning lamp**. They are servicing, repairing, or presenting the car. That is still 愈后: what the work does to the **next buyer’s price**.
+Some people have **no warning lamp**. They are servicing, repairing, or presenting the car. This skill then states only what that work usually does to the **next buyer’s price**.
 
-In **skill mode**, say only the **price effect**. Do not teach the modification. Do not open the dashboard picker unless a lamp is also lit.
+Do not teach the modification. Do not open the dashboard picker unless a lamp is also lit.
 
-The website can hold a **vehicle data card** (work done, invoices, presentation). The skill does not build that card. Point them to [obdcode.co.uk](https://obdcode.co.uk) to record it. Do not print the plate.
+The website can hold a **vehicle data card**. The skill does not build that card. Point them to [obdcode.co.uk](https://obdcode.co.uk) to record it. Do not print the plate.
 
 ## When this step runs
 
@@ -12,7 +12,7 @@ The website can hold a **vehicle data card** (work done, invoices, presentation)
 - They ask whether a service, cambelt, clutch, tyres, or MOT **adds value**
 - They want to annotate repairs that should raise the asking price
 
-If a lamp is also lit: fault statement + repair-or-sell outlook **first**, then a separate **[Value]** block.
+If a lamp is also lit: fault statement + repair-or-sell **first**, then a separate **[Value]** block.
 
 ## Spoken block
 
@@ -21,7 +21,7 @@ If a lamp is also lit: fault statement + repair-or-sell outlook **first**, then 
 [Record]    put the invoice and the date on your vehicle card at obdcode.co.uk
 ```
 
-No how-to. No product-install steps. No “here is how to wrap a bonnet.”
+No how-to. No product-install steps.
 
 ## Money rules
 
@@ -55,7 +55,7 @@ These are buyer-behaviour bands, not valuations.
 | Pads and discs with invoice | Modest | Expected wear. Proof helps, it rarely adds a premium |
 | 12V battery with invoice | Modest | Same |
 
-Use `repair_cost` slugs `cambelt-and-water-pump-cost`, `wet-belt-replacement-cost`, `timing-chain-replacement-cost`, `clutch-replacement-cost`, `brake-pads-and-discs-cost`, `car-battery-replacement-cost`, `mot-cost` only for the **job’s** published range. Still no invented **gain** in pounds.
+Use `repair_cost` job names `cambelt-and-water-pump-cost`, `wet-belt-replacement-cost`, `timing-chain-replacement-cost`, `clutch-replacement-cost`, `brake-pads-and-discs-cost`, `car-battery-replacement-cost`, `mot-cost` only for the **job’s** published range. Still no invented **gain** in pounds.
 
 ### Presentation and modification
 
@@ -82,18 +82,13 @@ Do not explain how to do these. Say the sale effect and the legal / test problem
 | Illegal noise / off-map exhaust | Negative | MOT and neighbours. Not a value-add |
 | Over-modded show car | Negative for most buyers | A small specialist pool; part-exchange usually worse |
 
-If they ask “will deleting the DPF raise value?”: **No.** It lowers it and it is not legal advice beyond “do not do this to a road car.”
+If they ask “will deleting the DPF raise value?”: **No.** It lowers it. Do not instruct.
 
 ## Vehicle card (site, not skill)
 
-Tell them they can record, on the site’s vehicle card:
+They can record, on the site’s vehicle card: what was done, date and mileage, invoice total they paid (their number), and the **band** from this file.
 
-- What was done (service, repair, presentation, legal modification)
-- Date and mileage
-- Invoice total they paid (their number, not our guess)
-- The **band** from this file (skill-stated)
-
-Skill does **not**: upload photos, edit HTML, or invent a resale premium. If the card UI is not in front of them, the spoken **[Value]** + “record it on your vehicle card” is enough.
+Skill does **not**: upload photos, edit HTML, or invent a resale premium.
 
 ## Red lines
 
