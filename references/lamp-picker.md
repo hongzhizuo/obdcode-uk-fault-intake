@@ -22,6 +22,8 @@ Blue/green lights (main beam, indicators, cruise, fog, engine-cold) are not on t
 
 Accept a number, an id, or "the engine shape, not flashing".
 
+After a number, Read **only** that lamp's PNG (`assets/lamp-01-oil-pressure.png` … `lamp-13-glow-plug.png`) in the same turn, so they can confirm the shape. Do not re-show the whole cluster unless they say it is the wrong one.
+
 - **6 vs 7** (same engine outline): if they have not said steady or flashing, Read `assets/lamp-06-engine-steady.png` and `assets/lamp-07-engine-flashing.png`, and ask only that. 6 is STEADY, 7 is FLASHING.
 - **12**: flashing while driving is normal; steady means off or faulty. Ask only if unclear.
 - **Never** map "a light came on" to a default lamp.

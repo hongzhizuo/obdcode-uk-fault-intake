@@ -47,6 +47,7 @@ Do not start with "what colour is it?". Do not guess the lamp from a vague descr
 - Otherwise follow `references/lamp-picker.md`: **Read** `assets/cluster.png` with the Read tool so the dashboard picture appears in the conversation. Then ask which **number on the picture** is lit. A numbered prose list is not the picker. Markdown `![](…)` is not the picker. If Read fails, use the ASCII cluster in that file — still a drawing, not names.
 - Ask them to reply with the **number printed on the matching lamp**, or an id. If it flashes, they should say flashing.
 - If the reply does not match, say so and show the picture again. **Never force the nearest lamp.**
+- After a pick, **Read** that one lamp PNG (`assets/lamp-0N-….png`) in the same turn as any follow-up questions, so they can confirm the shape. Do not re-show all 13.
 - After a pick, read that id in `references/warning-lights.md` for class, drive advice, owner-safe checks, garage questions, and MOT note.
 - Only ask extra behaviour questions when that id still needs them:
   - `tyre-pressure` — did it flash for about a minute at startup and then stay steady (system fault), or is it simply on (likely low pressure)?

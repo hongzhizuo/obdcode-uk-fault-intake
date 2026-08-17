@@ -45,9 +45,9 @@ BEZEL = (48, 50, 56, 255)
 WELL = (10, 10, 12, 255)
 BG = (18, 18, 22, 255)
 
-W, H = 1760, 900
-CELL = 148
-ICON = 112
+W, H = 1760, 960
+CELL = 164
+ICON = 100
 GAP = 12
 LAMP_PNG = 256
 
@@ -76,14 +76,13 @@ def raster_svg(svg_stem: str, kind: str) -> Image.Image:
     hex_color = RED_HEX if kind == "red" else AMBER_HEX
     svg = (SVG_DIR / f"{svg_stem}.svg").read_text()
     svg = colorize_svg(svg, hex_color)
-    inner = 176
+    inner = 184
     png = cairosvg.svg2png(bytestring=svg.encode("utf-8"), output_width=inner, output_height=inner)
     icon = Image.open(BytesIO(png)).convert("RGBA")
     canvas = Image.new("RGBA", (LAMP_PNG, LAMP_PNG), (0, 0, 0, 255))
-    glow = icon.filter(ImageFilter.GaussianBlur(8))
-    glow = ImageEnhance.Brightness(glow).enhance(2.1)
+    glow = icon.filter(ImageFilter.GaussianBlur(5))
+    glow = ImageEnhance.Brightness(glow).enhance(1.7)
     ox = (LAMP_PNG - inner) // 2
-    canvas.alpha_composite(glow, (ox, ox))
     canvas.alpha_composite(glow, (ox, ox))
     canvas.alpha_composite(icon, (ox, ox))
     return canvas
@@ -114,36 +113,37 @@ def draw_gauge(img: Image.Image, cx: int, cy: int, r: int, label: str) -> None:
 
 def stamp_number(cell: Image.Image, n: int, colour: tuple[int, int, int, int]) -> None:
     d = ImageDraw.Draw(cell)
-    f = font(22, bold=True)
-    d.ellipse((8, 8, 42, 42), fill=(0, 0, 0, 230), outline=colour, width=3)
+    f = font(20, bold=True)
+    cx, cy = CELL / 2, CELL - 22
+    d.ellipse((cx - 16, cy - 16, cx + 16, cy + 16), fill=(0, 0, 0, 230), outline=colour, width=3)
     text = str(n)
     bbox = d.textbbox((0, 0), text, font=f)
     tw, th = bbox[2] - bbox[0], bbox[3] - bbox[1]
-    d.text((25 - tw / 2, 25 - th / 2 - 1), text, font=f, fill=WHITE)
+    d.text((cx - tw / 2, cy - th / 2 - 1), text, font=f, fill=WHITE)
 
 
 def caption(cell: Image.Image, text: str, colour: tuple[int, int, int, int]) -> None:
     d = ImageDraw.Draw(cell)
-    f = font(13, bold=True)
+    f = font(11, bold=True)
     bbox = d.textbbox((0, 0), text, font=f)
     tw = bbox[2] - bbox[0]
-    d.text(((CELL - tw) / 2, CELL - 22), text, font=f, fill=colour)
+    d.text(((CELL - tw) / 2, CELL - 52), text, font=f, fill=colour)
 
 
 def make_cell(n: int, png_name: str, kind: str) -> Image.Image:
     colour = RED if kind == "red" else AMBER
     cell = Image.new("RGBA", (CELL, CELL), (0, 0, 0, 0))
     d = ImageDraw.Draw(cell)
-    rounded_rect(d, (0, 0, CELL - 1, CELL - 1), WELL, 16, outline=(36, 36, 40, 255), width=2)
+    rounded_rect(d, (0, 0, CELL - 1, CELL - 1), WELL, 16, outline=colour, width=2)
     icon = Image.open(ASSETS / png_name).convert("RGBA").resize((ICON, ICON), Image.Resampling.LANCZOS)
     ox = (CELL - ICON) // 2
-    oy = (CELL - ICON) // 2 - 4
+    oy = 6
     cell.alpha_composite(icon, (ox, oy))
-    stamp_number(cell, n, colour)
     if n == 6:
         caption(cell, "STEADY", AMBER)
     elif n == 7:
         caption(cell, "FLASHING", AMBER)
+    stamp_number(cell, n, colour)
     return cell
 
 
@@ -182,8 +182,8 @@ def compose_cluster() -> None:
     bbox = d.textbbox((0, 0), s, font=sub)
     d.text(((W - (bbox[2] - bbox[0])) / 2, 94), s, font=sub, fill=MUTED)
 
-    draw_gauge(img, 148, 430, 100, "RPM")
-    draw_gauge(img, W - 148, 430, 100, "SPEED")
+    draw_gauge(img, 148, 470, 100, "RPM")
+    draw_gauge(img, W - 148, 470, 100, "SPEED")
 
     reds = [x for x in LAMPS if x[3] == "red"]
     ambers = [x for x in LAMPS if x[3] == "amber"]

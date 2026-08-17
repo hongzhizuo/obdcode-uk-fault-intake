@@ -20,7 +20,7 @@ Owner starts with a plate and no lamp. The agent **shows the cluster picture** b
 
 **Owner:** 6
 
-The agent does not diagnose. It asks only what the menu cannot know, then looks up `{"reg":"AB12CDE"}`.
+**Agent:** Reads `assets/lamp-06-engine-steady.png` so they can confirm the shape. Asks only what the menu cannot know, then looks up `{"reg":"AB12CDE"}`.
 
 **Agent:** When did it start, and has power, noise, smell, smoke, steering or temperature changed?
 
