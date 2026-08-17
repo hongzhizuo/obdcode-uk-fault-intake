@@ -8,7 +8,12 @@ Grading follows a four-level scheme so it can be consumed programmatically:
 - `drive_advice` — `Yes` · `YesWithCare` · `Limited` (get it to a garage, no journeys) · `Stop` (pull over now)
 - `warnings` — `W-SUPPORT` (lifting/support) · `W-HOT` (burns/scalding) · `W-ELECTRICAL` (12V, SRS, HV) · `W-CO` (exhaust gas/ventilation)
 
-These 13 `id` values are stable. Do not rename them. An agent presenting a picker must use these ids and numbers 1–13. The exact picker to show the owner is the still picture `assets/cluster.png` (see `references/lamp-picker.md`), not a list of English names.
+These 13 `id` values are stable. Do not rename them. An agent presenting a picker must use these ids and numbers 1–13. Which still picture to show depends on the car (`references/boards.md`); it is not always `assets/cluster.png`.
+
+Boards are subsets of these 13. Numbers stay global. See `references/boards.md`.
+- petrol / hybrid: omit 9 DPF and 13 glow-plug
+- diesel / unknown: all 13
+- electric: omit 1 oil, 6/7 engine, 9 DPF, 13 glow-plug; keep 2,3,4,5,8,10,11,12. Lamp 8 on an EV is the 12V system.
 
 **Colour first.** Red means stop or act now. Amber means investigate. Blue and green are informational — main beam, cruise, indicators — and are not faults.
 
@@ -30,7 +35,7 @@ MOT notes below say *where the lamp applies*. Whether a given lamp is testable d
 **drive_advice:** Stop
 **warnings:** W-HOT
 
-**Symbol:** old-fashioned oil can, sometimes with a drip. **Colour:** red.
+**Symbol:** old-fashioned oil can, sometimes with a drip. **Colour:** red. Not shown on the electric board.
 
 `safety_class: Red` · `drive_advice: Stop` · `warnings: W-HOT`
 
@@ -176,7 +181,7 @@ If the lamp is on and the steering still feels normal, that is limited driving: 
 **drive_advice:** YesWithCare
 **warnings:** none
 
-**Symbol:** engine block outline. **Colour:** amber. **Behaviour:** steady.
+**Symbol:** engine block outline. **Colour:** amber. **Behaviour:** steady. Not shown on the electric board.
 
 `safety_class: Amber` · `drive_advice: YesWithCare` · `warnings: none`
 
@@ -206,7 +211,7 @@ The lamp itself says nothing about *which* fault — that is the honest answer, 
 **drive_advice:** Stop
 **warnings:** W-HOT
 
-**Symbol:** same engine outline. **Behaviour:** flashing, usually with juddering.
+**Symbol:** same engine outline. **Behaviour:** flashing, usually with juddering. Not shown on the electric board.
 
 `safety_class: Red` · `drive_advice: Stop` · `warnings: W-HOT`
 
@@ -234,7 +239,7 @@ Ease off, stop somewhere safe, switch off. If it flashes again on restart, arran
 
 `safety_class: Amber` · `drive_advice: Limited` · `warnings: W-ELECTRICAL (battery12)`
 
-Despite the symbol, this almost never means the battery needs replacing. Lit with the engine running, it means the charging system is not keeping up — usually the alternator, the drive belt, or the wiring between them. The car is running on stored charge and will eventually stop, possibly without warning.
+Despite the symbol, this almost never means the battery needs replacing. Lit with the engine running, it means the charging system is not keeping up — usually the alternator, the drive belt, or the wiring between them. The car is running on stored charge and will eventually stop, possibly without warning. On an EV or hybrid this is still the 12V charging lamp, not traction-battery state of charge.
 
 Turn off heated screens, heated seats, air conditioning and anything else non-essential, and head somewhere you can stop.
 
@@ -260,7 +265,7 @@ Turn off heated screens, heated seats, air conditioning and anything else non-es
 **drive_advice:** Limited
 **warnings:** W-CO
 
-**Symbol:** exhaust box emitting dots. **Colour:** amber. **Diesel only.**
+**Symbol:** exhaust box emitting dots. **Colour:** amber. **Diesel only.** Not shown on petrol/hybrid/electric boards.
 
 `safety_class: Amber` · `drive_advice: Limited` · `warnings: W-CO`
 
@@ -376,7 +381,7 @@ This lamp is misread more often than any other, because flashing and steady mean
 **drive_advice:** YesWithCare
 **warnings:** none
 
-**Symbol:** coiled spiral, like a loose spring. **Colour:** amber. **Diesel only.**
+**Symbol:** coiled spiral, like a loose spring. **Colour:** amber. **Diesel only.** Not shown on petrol/hybrid/electric boards.
 
 `safety_class: Amber` · `drive_advice: YesWithCare` · `warnings: none`
 

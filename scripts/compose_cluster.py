@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Rasterize vector lamps and build assets/cluster.png.
+"""Rasterize vector lamps and build per-fuel cluster PNGs.
 
-Sources live in assets/svg/. The owner still sees one numbered dashboard
-picture — this only upgrades the lamps from generated bitmaps to vectors.
+Sources live in assets/svg/. The owner sees one numbered dashboard for
+the fuel of this car. Lamp numbers stay global (9 is always DPF).
 """
 from __future__ import annotations
 
@@ -17,7 +17,6 @@ from PIL import Image, ImageDraw, ImageEnhance, ImageFilter, ImageFont
 ROOT = Path(__file__).resolve().parents[1]
 ASSETS = ROOT / "assets"
 SVG_DIR = ASSETS / "svg"
-OUT_CLUSTER = ASSETS / "cluster.png"
 
 LAMPS = [
     (1, "01-oil-pressure", "lamp-01-oil-pressure.png", "red"),
@@ -34,6 +33,41 @@ LAMPS = [
     (12, "12-esc-traction", "lamp-12-esc-traction.png", "amber"),
     (13, "13-glow-plug", "lamp-13-glow-plug.png", "amber"),
 ]
+BY_N = {row[0]: row for row in LAMPS}
+
+# Numbers are global. 9 is always DPF even when a petrol board omits it.
+BOARDS = {
+    "unknown": {
+        "file": "cluster.png",
+        "tag": "Match the shape. Reply with the number.",
+        "left": "RPM",
+        "ids": [1, 2, 3, 4, 5, 8, 6, 7, 9, 10, 11, 12, 13],
+    },
+    "petrol": {
+        "file": "cluster-petrol.png",
+        "tag": "Petrol — no DPF or glow-plug on this board.",
+        "left": "RPM",
+        "ids": [1, 2, 3, 4, 5, 8, 6, 7, 10, 11, 12],
+    },
+    "diesel": {
+        "file": "cluster-diesel.png",
+        "tag": "Diesel — DPF (9) and glow-plug (13) are on this board.",
+        "left": "RPM",
+        "ids": [1, 2, 3, 4, 5, 8, 6, 7, 9, 10, 11, 12, 13],
+    },
+    "hybrid": {
+        "file": "cluster-hybrid.png",
+        "tag": "Hybrid — engine and 12V battery lamps still apply.",
+        "left": "RPM",
+        "ids": [1, 2, 3, 4, 5, 8, 6, 7, 10, 11, 12],
+    },
+    "electric": {
+        "file": "cluster-electric.png",
+        "tag": "Electric — no oil, engine, DPF or glow-plug. 8 is the 12V system.",
+        "left": "PWR",
+        "ids": [2, 3, 4, 5, 8, 10, 11, 12],
+    },
+}
 
 RED = (255, 56, 56, 255)
 AMBER = (255, 176, 32, 255)
@@ -166,7 +200,8 @@ def render_lamp_pngs() -> None:
         print(f"wrote {path.name} ({path.stat().st_size} bytes)")
 
 
-def compose_cluster() -> None:
+def compose_cluster(board_id: str, spec: dict) -> None:
+    picked = [BY_N[n] for n in spec["ids"]]
     img = Image.new("RGBA", (W, H), BG)
     d = ImageDraw.Draw(img)
     rounded_rect(d, (24, 24, W - 25, H - 25), (22, 22, 26, 255), 36, outline=BEZEL, width=6)
@@ -178,15 +213,15 @@ def compose_cluster() -> None:
     d.text(((W - (bbox[2] - bbox[0])) / 2, 56), t, font=title, fill=WHITE)
 
     sub = font(16)
-    s = "Match the shape that is lit on your car. Reply with the number. If it flashes, say flashing."
+    s = spec["tag"] + " If it flashes, say flashing."
     bbox = d.textbbox((0, 0), s, font=sub)
     d.text(((W - (bbox[2] - bbox[0])) / 2, 94), s, font=sub, fill=MUTED)
 
-    draw_gauge(img, 148, 470, 100, "RPM")
+    draw_gauge(img, 148, 470, 100, spec["left"])
     draw_gauge(img, W - 148, 470, 100, "SPEED")
 
-    reds = [x for x in LAMPS if x[3] == "red"]
-    ambers = [x for x in LAMPS if x[3] == "amber"]
+    reds = [x for x in picked if x[3] == "red"]
+    ambers = [x for x in picked if x[3] == "amber"]
     red_row = row_of(reds)
     amber_row = row_of(ambers)
 
@@ -211,17 +246,19 @@ def compose_cluster() -> None:
     img.alpha_composite(amber_row, (well_x + (well_w - amber_row.width) // 2, well_y + 40 + CELL + 36))
 
     foot = font(15)
-    ftxt = "Blue / green lamps (main beam, indicators, cruise, fog, engine-cold) are not faults. If none match, say so."
+    ftxt = "Blue / green lamps are not faults. If none match, say so — the fuel board may be wrong."
     bbox = d.textbbox((0, 0), ftxt, font=foot)
     d.text(((W - (bbox[2] - bbox[0])) / 2, H - 72), ftxt, font=foot, fill=MUTED)
 
-    img.convert("RGB").save(OUT_CLUSTER, "PNG", optimize=True)
-    print(f"wrote {OUT_CLUSTER} ({OUT_CLUSTER.stat().st_size} bytes)")
+    out = ASSETS / spec["file"]
+    img.convert("RGB").save(out, "PNG", optimize=True)
+    print(f"wrote {out.name} ({out.stat().st_size} bytes) [{board_id}]")
 
 
 def main() -> None:
     render_lamp_pngs()
-    compose_cluster()
+    for board_id, spec in BOARDS.items():
+        compose_cluster(board_id, spec)
 
 
 if __name__ == "__main__":

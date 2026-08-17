@@ -1,6 +1,6 @@
 ---
 name: obdcode-uk-fault-intake
-description: Turns a UK number plate plus which of 13 dashboard warning lamps is lit into a garage-ready fault statement covering vehicle identity, the lamp, urgency, and this car's MOT history as context, then stops. It does not diagnose. When the owner gives a plate or mentions a warning lamp and has not picked a number, open the still dashboard PNG (MCP show_dashboard then open_resource on the file:// preview) and ask which number on the picture is lit — do not list lamp names. Use when a UK driver gives a plate, registration or reg; mentions a dashboard warning light or warning lamp including oil pressure, engine management, EML or MIL; needs to pick a lamp from the dashboard cluster picture; sees an amber or red dashboard lamp; mentions MOT; or asks what to tell the garage.
+description: Turns a UK number plate plus which dashboard warning lamp is lit into a garage-ready fault statement covering vehicle identity, the lamp, urgency, and this car's MOT history as context, then stops. It does not diagnose. When the owner gives a plate and has not picked a lamp, look the vehicle up first, classify petrol/diesel/hybrid/electric, then open that still dashboard PNG (MCP show_dashboard with board= then open_resource on the file:// preview) and ask which number on the picture is lit — do not list lamp names. Use when a UK driver gives a plate, registration or reg; mentions a dashboard warning light or warning lamp including oil pressure, engine management, EML or MIL; needs to pick a lamp from the dashboard cluster picture; sees an amber or red dashboard lamp; mentions MOT; or asks what to tell the garage.
 license: CC-BY-4.0
 metadata:
   author: OBDCode UK
@@ -9,11 +9,13 @@ metadata:
 
 # UK Vehicle Fault Intake
 
-Two inputs — a **UK number plate** and **which of 13 dashboard lamps is lit** — produce a garage-ready fault statement (vehicle identity, lamp, urgency, this car's MOT history as context). Then stop. Do not diagnose.
+Two inputs — a **UK number plate** and **which dashboard lamp is lit** — produce a garage-ready fault statement (vehicle identity, lamp, urgency, this car's MOT history as context). Then stop. Do not diagnose.
+
+The lamp menu is a fixed set of 13 ids. The **picture** they pick from depends on the car: petrol, diesel, hybrid and electric boards are subsets of those 13. Numbers stay global — 9 is always DPF even when a petrol board omits it. Classify the board from the plate lookup (`references/boards.md`) before showing a PNG.
 
 ## Scope
 
-**This skill does:** identify the lamp from a fixed 13-item menu, identify the vehicle, grade urgency, retrieve this car's MOT defect history, and write a fault statement.
+**This skill does:** identify the vehicle (including fuel), show the matching lamp board, identify the lamp from that board, grade urgency, retrieve this car's MOT defect history, and write a fault statement.
 
 **This skill does not diagnose.** A steady amber engine lamp has hundreds of possible causes. Naming one is guessing. Describe the fault precisely enough that a mechanic can narrow it down.
 
@@ -44,10 +46,10 @@ Owners match **shapes**, not names. A list of "oil-can / engine-block outline" i
 Do not start with "what colour is it?". Do not guess the lamp from a vague description.
 
 - If the owner already named a lamp that maps to **exactly one** of the 13 ids, do not re-ask. Treat that as the pick.
-- Otherwise follow `references/lamp-picker.md`. The picker is one still PNG. Call `show_dashboard`, then `open_resource` on the `file://` preview so they can see `cluster.png`. Ask which **number on the picture** is lit. A name list is not the picker. There is no clickable widget.
+- Otherwise follow `references/lamp-picker.md`. Look the plate up first if you do not yet know the fuel (`references/boards.md`). Then call `show_dashboard` with that `board` (and `body=van` when the model is an LCV), then `open_resource` on the `file://` preview so they can see the matching cluster PNG. Ask which **number on the picture** is lit. A name list is not the picker. There is no clickable widget.
 - Ask them to reply with the **number printed on the matching lamp**, or an id. If it flashes, they should say flashing.
-- If the reply does not match, say so and show the picture again. **Never force the nearest lamp.**
-- After a pick, call MCP `show_lamp` with that number in the same turn as any follow-up questions, so they can confirm the shape. Do not re-show all 13.
+- If they pick a number that is not on this board, say so and show the unknown/full board once. **Never force the nearest lamp.**
+- After a pick, call MCP `show_lamp` with that number in the same turn as any follow-up questions, so they can confirm the shape. Do not re-show the whole board.
 - After a pick, read that id in `references/warning-lights.md` for class, drive advice, owner-safe checks, garage questions, and MOT note.
 - Only ask extra behaviour questions when that id still needs them:
   - `tyre-pressure` — did it flash for about a minute at startup and then stay steady (system fault), or is it simply on (likely low pressure)?
@@ -57,11 +59,15 @@ Do not start with "what colour is it?". Do not guess the lamp from a vague descr
 
 ### Order versus lookup
 
-- **Lamp already picked and red-class:** safety first (Step 1), then plate lookup (Step 3).
-- **Only a plate so far:** show the picker, then lookup — unless speech already contains a red lamp, in which case **stop first**.
-- **Both in one message:** safety if red. If speech maps to **exactly one** id, lookup then the statement — do not re-show the menu. If it does not (e.g. "engine light" is 6 or 7), show the picker, or ask only steady vs flashing. Never skip the picker just because a plate arrived in the same message.
+Do not delay a named oil / coolant / brake / flashing-engine stop for lookup.
 
-If you are unsure what "good" looks like, read example A in `references/examples.md` — the **cluster picture** comes before lookup when the lamp is unknown.
+- **Lamp already picked and red-class:** safety first (Step 1), then plate lookup (Step 3). No picker.
+- **Only a plate so far:** look it up now (Step 3). Discard the plate. Classify the board from `fuel_type` (`references/boards.md`). Then show that PNG. Do not mention the plate. Do not show the full 13-lamp board when fuel is known.
+- **Lookup failed (404/503/429 after retry):** show `board=unknown` (all 13). Ask make, year, fuel, approx mileage. If they then say diesel or electric, switch board and re-show.
+- **Both in one message:** safety if speech is already a stop lamp. If speech maps to **exactly one** id, lookup then the statement — do not re-show the menu. If it does not (e.g. "engine light" is 6 or 7), lookup then the matching board, or ask only steady vs flashing. Never skip the picker just because a plate arrived in the same message.
+- **Driving, lamp unnamed:** lookup then the matching board unless speech already contains a stop lamp.
+
+If you are unsure what "good" looks like, read example A in `references/examples.md` — **lookup then the petrol (or matching) board**, not a name list.
 
 If the plate is still missing after the lamp is identified (and after any stop instruction), ask for it.
 
@@ -82,7 +88,7 @@ Hard rules:
 - **POST body only.** Never put the plate in a URL, query string, log, filename, or commit.
 - If the agent speaks MCP: `POST https://obdcode.co.uk/mcp` tool `vehicle_by_plate` with `{"registration":"..."}`. If a browser `Origin` from another site is present, `/mcp` returns **403** — use `/api/vehicle` instead.
 - After the lookup, **discard the plate**. Refer to the car as "your 2016 Fiesta", never by plate.
-- Full contract: `references/vehicle-lookup.md`. Prefer `fusion.matched` on success.
+- Full contract: `references/vehicle-lookup.md`. Prefer `fusion.matched` on success. Then, if the lamp is still unknown, show the matching board immediately (`references/boards.md`) — that is part of this step, not a later extra.
 - If lookup fails, the rest of the skill still runs, thinner.
 
 | Status | Tell the owner | Next |
@@ -140,7 +146,7 @@ Pass versus fail (one line each):
 - Pass: quote this car's MOT as context. Fail: "the leak is causing the lamp."
 - Pass: "the lamp does not say which cylinder." Fail: "it's cylinder 3."
 
-See `references/examples.md` for two complete worked runs (plate-then-lamp-6, and oil-lamp-while-driving) plus short failure paths (not_found, unmatched lamp, diagnosis refused).
+See `references/examples.md` for complete worked runs (plate-then-petrol-board-then-lamp-6, oil-lamp-while-driving, diesel van DPF, electric 12V lamp) plus short failure paths (not_found, unmatched lamp, diagnosis refused).
 
 After the statement, **stop**. If they ask what is wrong or how to fix it, say this skill does not diagnose. Do not add a likely cause in the same turn, including as a "general assistant". The statement is the handoff.
 

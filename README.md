@@ -2,7 +2,7 @@
 
 An agent skill that takes two inputs — a **UK number plate** and **a pick from one of thirteen dashboard lamps** — and turns them into a structured, garage-ready description of a car fault.
 
-The owner does not have to know the lamp's name. They give the plate and point at a **dashboard picture** (`assets/cluster.png`) whose shapes match the symbols on the car.
+The owner does not have to know the lamp's name. They give the plate and point at a **dashboard picture** whose shapes match the symbols on the car. Which picture they see depends on the car — petrol, diesel, hybrid, or electric. The numbers stay **1–13 globally** (9 is always DPF, even when a petrol board omits it).
 
 It identifies the vehicle from its official MOT record, grades how urgent the lamp is, cross-references the car's own MOT defect history, and writes a statement the owner can read aloud at a service desk.
 
@@ -51,22 +51,24 @@ Cursor's Read tool shows images to the model, not in the owner's chat. After clo
 }
 ```
 
-Then **start a new agent conversation** — old threads will not reload the skill. A passing first run is a plate only: the numbered `cluster.png` is opened for the owner before any vehicle card. A passing safety run is an oil lamp while driving: the first sentence is stop, and lookup comes after.
+Then **start a new agent conversation** — old threads will not reload the skill. A passing first run is a plate only: look the vehicle up, then open the matching `cluster-*.png` (not the full 13 if fuel is known). A passing safety run is an oil lamp while driving: the first sentence is stop, and lookup comes after.
 
 ## Layout
 
 | File | Contents |
 |---|---|
 | `SKILL.md` | Workflow, safety ordering, output format, red lines |
+| `references/boards.md` | Fuel → board (petrol / diesel / hybrid / electric / unknown); numbers stay 1–13 globally |
 | `references/lamp-picker.md` | How to show the picker: Read the cluster picture, then ask for the number |
-| `assets/cluster.png` | One instrument-cluster picture; numbers are on the lamps |
+| `assets/cluster.png` | Unknown / full board (all 13) |
+| `assets/cluster-*.png` | Per-fuel boards: petrol, diesel, hybrid, electric |
 | `assets/lamp-*.png` | The 13 glowing lamps (rasterized from SVG for chat) |
 | `assets/svg/` | Vector sources: MDI Apache-2.0 plus three original pictograms |
-| `scripts/compose_cluster.py` | Rasterizes the SVGs and rebuilds `cluster.png` |
-| `scripts/show_lamps_mcp.py` | MCP server: `show_dashboard` / `show_lamp` (this is what the owner sees) |
+| `scripts/compose_cluster.py` | Rasterizes the SVGs and rebuilds all boards |
+| `scripts/show_lamps_mcp.py` | MCP: `show_dashboard` (`board=`, optional `body=`) / `show_lamp` |
 | `references/warning-lights.md` | Thirteen UK dashboard lamps with safety grading and drive advice |
 | `references/vehicle-lookup.md` | Three access tiers, response shape, privacy rules |
-| `references/examples.md` | Worked runs: plate-then-picker, oil-lamp stop-first, not_found fallback, unmatched lamp, diagnosis refused |
+| `references/examples.md` | Worked runs: plate-then-petrol-board, oil-lamp stop-first, diesel van DPF, electric 12V lamp, not_found, unmatched lamp, diagnosis refused |
 
 ## Vehicle lookup
 

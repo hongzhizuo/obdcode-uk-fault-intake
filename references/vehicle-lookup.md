@@ -128,6 +128,12 @@ From tier 1. Abridged; the plate appears nowhere in it.
 
 `fuel_type` is normalised to `petrol` / `diesel` / `hybrid` / `electric` / `unknown`; `fuel_raw` keeps the upstream wording.
 
+That field picks the lamp board (`references/boards.md`). After a successful lookup, if the lamp is not yet identified, show that board immediately — do not show the full 13-lamp cluster when fuel is known.
+
+There is no van or body-type field. Detect vans from make+model substrings listed in `references/boards.md`; vans only change the caption (`body=van`), not the lamps.
+
+If lookup fails, `board=unknown` (full `cluster.png`) and ask the owner for fuel when you ask make, year, and mileage.
+
 Tests come newest first. Odometer readings across tests give an annual mileage, worth mentioning when a fault is mileage-related.
 
 Defect `type` is one of `ADVISORY`, `MINOR`, `MAJOR`, `DANGEROUS`, `FAIL` or `USER ENTERED`. Treat any entry with `"dangerous": true` as significant even on a test the car passed.

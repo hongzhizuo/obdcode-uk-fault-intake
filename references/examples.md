@@ -6,25 +6,17 @@ The vehicle card matches the public `POST /api/vehicle` response shape.
 
 The owner plate in the prose is always `AB12CDE` (fictional).
 
-After a lookup, refer to the car as "your 2016 Fiesta", never by plate.
+After a lookup, refer to the car as "your 2016 Fiesta" or "your Transit", never by plate.
+
+When the owner only sent a plate, look the vehicle up first, then show the fuel-specific board. Example B is the exception: a named stop lamp while driving is stop-first, before lookup.
 
 MOT records are Crown copyright. Lamp advice is original to this skill.
 
-## Example A — main path: plate first, then lamp 6 `engine-steady`
+## Example A — main path: plate first, lookup, petrol board, then lamp 6 `engine-steady`
 
-Owner starts with a plate and no lamp. The agent **shows the cluster picture** before any lookup. A name-only list is a fail.
+Owner starts with a plate and no lamp. The agent **looks the vehicle up first**. The illustrative card is a 2016 Fiesta petrol. Then the agent shows the **petrol board** (`cluster-petrol.png` via `show_dashboard` `board=petrol`), not the full 13-lamp cluster. DPF 9 and glow-plug 13 are not on this picture. A name-only list is a fail.
 
 **Owner:** plate AB12CDE
-
-**Agent:** Opens the still dashboard PNG (`show_dashboard` then `open_resource` on the `file://` preview) and asks which **number on the picture** is lit. A name-only list is a fail. An iframe or clickable widget is not required.
-
-**Owner:** 6
-
-**Agent:** Calls MCP `show_lamp` with number 6 so they can confirm the shape. Asks only what the menu cannot know, then looks up `{"reg":"AB12CDE"}`.
-
-**Agent:** When did it start, and has power, noise, smell, smoke, steering or temperature changed?
-
-**Owner:** This morning. The car drives normally. No smoke.
 
 Lookup is `POST /api/vehicle` with `{"reg":"AB12CDE"}`. Illustrative card (same shape as the live contract):
 
@@ -36,6 +28,16 @@ advisories: Front Brake pad(s) wearing thin; Nearside Front Tyre worn close to l
 fusion.matched includes brake-pads-wearing-thin count 1
 NO emissions/exhaust/catalyst/lambda/smoke defects
 ```
+
+**Agent:** Opens the petrol dashboard PNG (`show_dashboard` with `board=petrol`, then `open_resource` on the `file://` preview of `cluster-petrol.png`) and asks which **number on the picture** is lit. This board is for a petrol car. DPF 9 and glow-plug 13 are not on this picture. A name-only list is a fail. An iframe or clickable widget is not required.
+
+**Owner:** 6
+
+**Agent:** Calls MCP `show_lamp` with number 6 so they can confirm the shape. Asks only what the menu cannot know.
+
+**Agent:** When did it start, and has power, noise, smell, smoke, steering or temperature changed?
+
+**Owner:** This morning. The car drives normally. No smoke.
 
 Then the statement the owner can read aloud:
 
@@ -89,7 +91,7 @@ Live probe on 17 August 2026: `POST /api/vehicle` `{"reg":"ZZ99ZZZ"}` → HTTP 4
 
 **Owner:** 2014 Golf 2.0 TDI, about 80,000 miles.
 
-They pick lamp 6. The statement still happens. Do not invent a DVSA history.
+**Agent:** `show_dashboard` `board=diesel` (owner-stated fuel), then they pick lamp 6. The statement still happens. Do not invent a DVSA history.
 
 **[Vehicle]** Your 2014 Golf 2.0 TDI · about 80,000 miles (owner-stated). No MOT record available.
 
@@ -109,7 +111,7 @@ They pick lamp 6. The statement still happens. Do not invent a DVSA history.
 
 **Owner:** there's a light on
 
-**Agent:** shows the same cluster picture. Does **not** default to `engine-steady`. Does not look up a plate it does not have.
+**Agent:** no plate yet, so `board=unknown` (full cluster). Does **not** default to `engine-steady`. Does not look up a plate it does not have.
 
 ## Example E — diagnosis refusal (short)
 
@@ -128,3 +130,55 @@ The published skill must not contain:
 - Site source paths
 
 This file uses only `AB12CDE` as the owner plate.
+
+## Example G — diesel van: lamp 9 `dpf` (short)
+
+Owner starts with a plate and no lamp. Lookup first. The card is a Transit, `fuel_type` diesel. Then the diesel van board — not a car cluster and not a petrol board.
+
+**Owner:** plate AB12CDE
+
+Lookup is `POST /api/vehicle` with `{"reg":"AB12CDE"}`. Illustrative card:
+
+```
+make FORD / model TRANSIT / fuel_type diesel / year 2018
+```
+
+**Agent:** `show_dashboard` with `board=diesel` `body=van`, then `open_resource` the `file://` preview. Caption: this board is for a diesel van. Asks which **number on the picture** is lit.
+
+**Owner:** 9
+
+**Agent:** Calls MCP `show_lamp` with number 9 (`dpf`). Then the statement. Refer to **your Transit**, never the plate.
+
+**[Vehicle]** Your Transit, diesel.
+
+**[Showing]** Amber exhaust box with dots (`dpf`).
+
+**[Drive advice]** Limited driving. A handbook regeneration drive is the usual first attempt if the van is driving normally. If the lamp flashes, a red warning appears, the van is in limp mode, or the oil level has risen above maximum, do not keep repeating motorway runs.
+
+The agent **stops**. It does not diagnose.
+
+## Example H — electric car: lamp 8 `battery-charging` (short)
+
+Owner starts with a plate and no lamp. Lookup first. `fuel_type` electric. Then the electric board. That picture has no oil, engine, DPF or glow-plug.
+
+**Owner:** plate AB12CDE
+
+Lookup is `POST /api/vehicle` with `{"reg":"AB12CDE"}`. Illustrative card:
+
+```
+make NISSAN / model LEAF / fuel_type electric / year 2021
+```
+
+**Agent:** `show_dashboard` with `board=electric`, then `open_resource` the `file://` preview. This board has no oil (1), engine (6/7), DPF (9) or glow-plug (13). Asks which **number on the picture** is lit.
+
+**Owner:** 8
+
+**Agent:** Calls MCP `show_lamp` with number 8 (`battery-charging`). On this board, 8 is the **12V** system, not the traction pack. Then the statement. Do not diagnose.
+
+**[Vehicle]** Your 2021 Leaf, electric.
+
+**[Showing]** Battery / charging (`battery-charging`). This is the 12V system, not traction-battery state of charge.
+
+**[Drive advice]** Limited driving. The lamp does not name the part.
+
+The agent **stops**. It does not diagnose. It does not name a DC-DC converter, a traction pack, or any other cause.
