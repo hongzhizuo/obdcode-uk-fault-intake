@@ -51,8 +51,9 @@ After cloning, **start a new agent conversation** — old threads will not reloa
 | `SKILL.md` | Workflow, safety ordering, output format, red lines |
 | `references/lamp-picker.md` | How to show the picker: Read the cluster picture, then ask for the number |
 | `assets/cluster.png` | One instrument-cluster picture; numbers are on the lamps |
-| `assets/lamp-*.png` | The 13 individual pictograms (used to build the cluster, and to split 6 vs 7) |
-| `scripts/compose_cluster.py` | Regenerates `cluster.png` from the 13 icons |
+| `assets/lamp-*.png` | The 13 glowing lamps (rasterized from SVG for chat) |
+| `assets/svg/` | Vector sources: MDI Apache-2.0 plus three original pictograms |
+| `scripts/compose_cluster.py` | Rasterizes the SVGs and rebuilds `cluster.png` |
 | `references/warning-lights.md` | Thirteen UK dashboard lamps with safety grading and drive advice |
 | `references/vehicle-lookup.md` | Three access tiers, response shape, privacy rules |
 | `references/examples.md` | Worked runs: plate-then-picker, oil-lamp stop-first, not_found fallback, unmatched lamp, diagnosis refused |
@@ -82,12 +83,14 @@ Whether a lamp constitutes an MOT defect depends on the vehicle's first-use date
 - Vehicle and MOT records: DVSA MOT History API. Crown copyright.
 - Aggregate MOT statistics, where used: DVSA anonymised MOT dataset, [Open Government Licence v3.0](https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/). Attribution required on publication.
 - Lamp meanings, safety grading and drive advice: original work in this repository.
+- Lamp pictograms: Material Design Icons (Apache-2.0) plus original OBDCode UK drawings. See `assets/svg/NOTICE`.
 
 Not affiliated with DVSA or DVLA. Guidance is general information for UK drivers, not a substitute for professional diagnosis.
 
 ## Licence
 
-- Original skill text (workflow, 13-lamp reference, picker, examples): **CC-BY-4.0** (see `LICENSE`). Attribution: OBDCode UK.
+- Original skill text (workflow, 13-lamp reference, picker, examples) and original pictograms (oil-pressure, DPF, glow-plug): **CC-BY-4.0** (see `LICENSE`). Attribution: OBDCode UK.
+- Vendored Material Design Icons in `assets/svg/`: **Apache-2.0**, Pictogrammers (see `assets/svg/NOTICE` and `PICTOGRAMMERS-LICENSE.txt`).
 - Vehicle/MOT records retrieved at runtime: Crown copyright, via DVSA MOT History API. Not licensed by this file.
 - Aggregate MOT statistics if quoted: OGL v3.0, attribution required.
 

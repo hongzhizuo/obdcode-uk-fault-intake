@@ -1,38 +1,44 @@
 #!/usr/bin/env python3
-"""Build assets/cluster.png from the 13 lamp icons.
+"""Rasterize vector lamps and build assets/cluster.png.
 
-The picker the owner sees is one instrument-cluster picture with numbers
-on the lamps — not a list of English names. Regenerates in place.
+Sources live in assets/svg/. The owner still sees one numbered dashboard
+picture — this only upgrades the lamps from generated bitmaps to vectors.
 """
 from __future__ import annotations
 
 import math
+import re
+from io import BytesIO
 from pathlib import Path
 
-from PIL import Image, ImageDraw, ImageFont
+import cairosvg
+from PIL import Image, ImageDraw, ImageEnhance, ImageFilter, ImageFont
 
 ROOT = Path(__file__).resolve().parents[1]
 ASSETS = ROOT / "assets"
-OUT = ASSETS / "cluster.png"
+SVG_DIR = ASSETS / "svg"
+OUT_CLUSTER = ASSETS / "cluster.png"
 
 LAMPS = [
-    (1, "lamp-01-oil-pressure.png", "red"),
-    (2, "lamp-02-coolant-temp.png", "red"),
-    (3, "lamp-03-brake-system.png", "red"),
-    (4, "lamp-04-airbag-srs.png", "red"),
-    (5, "lamp-05-power-steering.png", "red"),
-    (8, "lamp-08-battery-charging.png", "red"),
-    (6, "lamp-06-engine-steady.png", "amber"),
-    (7, "lamp-07-engine-flashing.png", "amber"),
-    (9, "lamp-09-dpf.png", "amber"),
-    (10, "lamp-10-tyre-pressure.png", "amber"),
-    (11, "lamp-11-abs.png", "amber"),
-    (12, "lamp-12-esc-traction.png", "amber"),
-    (13, "lamp-13-glow-plug.png", "amber"),
+    (1, "01-oil-pressure", "lamp-01-oil-pressure.png", "red"),
+    (2, "02-coolant-temp", "lamp-02-coolant-temp.png", "red"),
+    (3, "03-brake-system", "lamp-03-brake-system.png", "red"),
+    (4, "04-airbag-srs", "lamp-04-airbag-srs.png", "red"),
+    (5, "05-power-steering", "lamp-05-power-steering.png", "red"),
+    (8, "08-battery-charging", "lamp-08-battery-charging.png", "red"),
+    (6, "06-engine-steady", "lamp-06-engine-steady.png", "amber"),
+    (7, "07-engine-flashing", "lamp-07-engine-flashing.png", "amber"),
+    (9, "09-dpf", "lamp-09-dpf.png", "amber"),
+    (10, "10-tyre-pressure", "lamp-10-tyre-pressure.png", "amber"),
+    (11, "11-abs", "lamp-11-abs.png", "amber"),
+    (12, "12-esc-traction", "lamp-12-esc-traction.png", "amber"),
+    (13, "13-glow-plug", "lamp-13-glow-plug.png", "amber"),
 ]
 
 RED = (255, 56, 56, 255)
 AMBER = (255, 176, 32, 255)
+RED_HEX = "#ff3838"
+AMBER_HEX = "#ffb020"
 WHITE = (236, 236, 240, 255)
 MUTED = (150, 152, 160, 255)
 BEZEL = (48, 50, 56, 255)
@@ -43,6 +49,7 @@ W, H = 1760, 900
 CELL = 148
 ICON = 112
 GAP = 12
+LAMP_PNG = 256
 
 
 def font(size: int, bold: bool = False) -> ImageFont.FreeTypeFont:
@@ -54,17 +61,45 @@ def rounded_rect(draw: ImageDraw.ImageDraw, box, fill, radius: int, outline=None
     draw.rounded_rectangle(box, radius=radius, fill=fill, outline=outline, width=width)
 
 
+def colorize_svg(svg: str, hex_color: str) -> str:
+    svg = svg.replace("currentColor", hex_color)
+    root = re.search(r"<svg\b[^>]*>", svg)
+    root_fill = root.group(0) if root else ""
+    if "fill=" not in root_fill:
+        svg = svg.replace("<svg ", f'<svg fill="{hex_color}" ', 1)
+    if 'fill="none"' not in root_fill:
+        svg = re.sub(r"<path(?![^>]*\bfill=)", f'<path fill="{hex_color}"', svg)
+    return svg
+
+
+def raster_svg(svg_stem: str, kind: str) -> Image.Image:
+    hex_color = RED_HEX if kind == "red" else AMBER_HEX
+    svg = (SVG_DIR / f"{svg_stem}.svg").read_text()
+    svg = colorize_svg(svg, hex_color)
+    inner = 176
+    png = cairosvg.svg2png(bytestring=svg.encode("utf-8"), output_width=inner, output_height=inner)
+    icon = Image.open(BytesIO(png)).convert("RGBA")
+    canvas = Image.new("RGBA", (LAMP_PNG, LAMP_PNG), (0, 0, 0, 255))
+    glow = icon.filter(ImageFilter.GaussianBlur(8))
+    glow = ImageEnhance.Brightness(glow).enhance(2.1)
+    ox = (LAMP_PNG - inner) // 2
+    canvas.alpha_composite(glow, (ox, ox))
+    canvas.alpha_composite(glow, (ox, ox))
+    canvas.alpha_composite(icon, (ox, ox))
+    return canvas
+
+
 def draw_gauge(img: Image.Image, cx: int, cy: int, r: int, label: str) -> None:
     overlay = Image.new("RGBA", img.size, (0, 0, 0, 0))
     d = ImageDraw.Draw(overlay)
     d.ellipse((cx - r - 10, cy - r - 10, cx + r + 10, cy + r + 10), fill=(28, 28, 32, 255), outline=BEZEL, width=10)
     d.ellipse((cx - r, cy - r, cx + r, cy + r), fill=(8, 8, 10, 255), outline=(70, 72, 80, 255), width=3)
-    for i in range(9):
-        ang = math.radians(220 - i * 28)
-        inner, outer = r - 18, r - 6
+    for i in range(13):
+        ang = math.radians(220 - i * (220 - 40) / 12)
+        inner, outer = r - (22 if i % 2 == 0 else 14), r - 6
         x1, y1 = cx + inner * math.cos(ang), cy - inner * math.sin(ang)
         x2, y2 = cx + outer * math.cos(ang), cy - outer * math.sin(ang)
-        d.line((x1, y1, x2, y2), fill=(90, 92, 100, 255), width=3)
+        d.line((x1, y1, x2, y2), fill=(90, 92, 100, 255), width=3 if i % 2 == 0 else 2)
     rest = math.radians(220)
     nx = cx + (r - 36) * math.cos(rest)
     ny = cy - (r - 36) * math.sin(rest)
@@ -72,22 +107,15 @@ def draw_gauge(img: Image.Image, cx: int, cy: int, r: int, label: str) -> None:
     d.ellipse((cx - 8, cy - 8, cx + 8, cy + 8), fill=(180, 40, 40, 255))
     f = font(18, bold=True)
     bbox = d.textbbox((0, 0), label, font=f)
-    tw, th = bbox[2] - bbox[0], bbox[3] - bbox[1]
+    tw = bbox[2] - bbox[0]
     d.text((cx - tw / 2, cy + r * 0.28), label, font=f, fill=MUTED)
     img.alpha_composite(overlay)
-
-
-def load_icon(name: str) -> Image.Image:
-    im = Image.open(ASSETS / name).convert("RGBA")
-    im = im.resize((ICON, ICON), Image.Resampling.LANCZOS)
-    return im
 
 
 def stamp_number(cell: Image.Image, n: int, colour: tuple[int, int, int, int]) -> None:
     d = ImageDraw.Draw(cell)
     f = font(22, bold=True)
-    badge = (8, 8, 42, 42)
-    d.ellipse(badge, fill=(0, 0, 0, 230), outline=colour, width=3)
+    d.ellipse((8, 8, 42, 42), fill=(0, 0, 0, 230), outline=colour, width=3)
     text = str(n)
     bbox = d.textbbox((0, 0), text, font=f)
     tw, th = bbox[2] - bbox[0], bbox[3] - bbox[1]
@@ -102,12 +130,12 @@ def caption(cell: Image.Image, text: str, colour: tuple[int, int, int, int]) -> 
     d.text(((CELL - tw) / 2, CELL - 22), text, font=f, fill=colour)
 
 
-def make_cell(n: int, filename: str, kind: str) -> Image.Image:
+def make_cell(n: int, png_name: str, kind: str) -> Image.Image:
     colour = RED if kind == "red" else AMBER
     cell = Image.new("RGBA", (CELL, CELL), (0, 0, 0, 0))
     d = ImageDraw.Draw(cell)
     rounded_rect(d, (0, 0, CELL - 1, CELL - 1), WELL, 16, outline=(36, 36, 40, 255), width=2)
-    icon = load_icon(filename)
+    icon = Image.open(ASSETS / png_name).convert("RGBA").resize((ICON, ICON), Image.Resampling.LANCZOS)
     ox = (CELL - ICON) // 2
     oy = (CELL - ICON) // 2 - 4
     cell.alpha_composite(icon, (ox, oy))
@@ -119,18 +147,26 @@ def make_cell(n: int, filename: str, kind: str) -> Image.Image:
     return cell
 
 
-def row_of(items: list[tuple[int, str, str]]) -> Image.Image:
+def row_of(items: list[tuple[int, str, str, str]]) -> Image.Image:
     n = len(items)
     w = n * CELL + (n - 1) * GAP
     row = Image.new("RGBA", (w, CELL), (0, 0, 0, 0))
     x = 0
-    for item in items:
-        row.alpha_composite(make_cell(*item), (x, 0))
+    for n_id, _svg, png_name, kind in items:
+        row.alpha_composite(make_cell(n_id, png_name, kind), (x, 0))
         x += CELL + GAP
     return row
 
 
-def main() -> None:
+def render_lamp_pngs() -> None:
+    for _n, stem, png_name, kind in LAMPS:
+        im = raster_svg(stem, kind)
+        path = ASSETS / png_name
+        im.convert("RGB").save(path, "PNG", optimize=True)
+        print(f"wrote {path.name} ({path.stat().st_size} bytes)")
+
+
+def compose_cluster() -> None:
     img = Image.new("RGBA", (W, H), BG)
     d = ImageDraw.Draw(img)
     rounded_rect(d, (24, 24, W - 25, H - 25), (22, 22, 26, 255), 36, outline=BEZEL, width=6)
@@ -139,20 +175,18 @@ def main() -> None:
     title = font(28, bold=True)
     t = "YOUR DASHBOARD"
     bbox = d.textbbox((0, 0), t, font=title)
-    tw = bbox[2] - bbox[0]
-    d.text(((W - tw) / 2, 56), t, font=title, fill=WHITE)
+    d.text(((W - (bbox[2] - bbox[0])) / 2, 56), t, font=title, fill=WHITE)
 
     sub = font(16)
     s = "Match the shape that is lit on your car. Reply with the number. If it flashes, say flashing."
     bbox = d.textbbox((0, 0), s, font=sub)
-    sw = bbox[2] - bbox[0]
-    d.text(((W - sw) / 2, 94), s, font=sub, fill=MUTED)
+    d.text(((W - (bbox[2] - bbox[0])) / 2, 94), s, font=sub, fill=MUTED)
 
     draw_gauge(img, 148, 430, 100, "RPM")
     draw_gauge(img, W - 148, 430, 100, "SPEED")
 
-    reds = [x for x in LAMPS if x[2] == "red"]
-    ambers = [x for x in LAMPS if x[2] == "amber"]
+    reds = [x for x in LAMPS if x[3] == "red"]
+    ambers = [x for x in LAMPS if x[3] == "amber"]
     red_row = row_of(reds)
     amber_row = row_of(ambers)
 
@@ -174,19 +208,20 @@ def main() -> None:
     d.text((well_x + 24, well_y + 48 + CELL + 8), "CHECK  ·  amber", font=label_f, fill=AMBER)
 
     img.alpha_composite(red_row, (well_x + (well_w - red_row.width) // 2, well_y + 40))
-    img.alpha_composite(
-        amber_row,
-        (well_x + (well_w - amber_row.width) // 2, well_y + 40 + CELL + 36),
-    )
+    img.alpha_composite(amber_row, (well_x + (well_w - amber_row.width) // 2, well_y + 40 + CELL + 36))
 
     foot = font(15)
     ftxt = "Blue / green lamps (main beam, indicators, cruise, fog, engine-cold) are not faults. If none match, say so."
     bbox = d.textbbox((0, 0), ftxt, font=foot)
-    fw = bbox[2] - bbox[0]
-    d.text(((W - fw) / 2, H - 72), ftxt, font=foot, fill=MUTED)
+    d.text(((W - (bbox[2] - bbox[0])) / 2, H - 72), ftxt, font=foot, fill=MUTED)
 
-    img.convert("RGB").save(OUT, "PNG", optimize=True)
-    print(f"wrote {OUT} ({OUT.stat().st_size} bytes)")
+    img.convert("RGB").save(OUT_CLUSTER, "PNG", optimize=True)
+    print(f"wrote {OUT_CLUSTER} ({OUT_CLUSTER.stat().st_size} bytes)")
+
+
+def main() -> None:
+    render_lamp_pngs()
+    compose_cluster()
 
 
 if __name__ == "__main__":

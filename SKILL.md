@@ -157,5 +157,6 @@ After the statement, **stop**. If they ask what is wrong or how to fix it, say t
 - Vehicle and MOT records: DVSA MOT History API. Crown copyright.
 - Aggregate MOT statistics, where used: DVSA anonymised MOT dataset, [Open Government Licence v3.0](https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/). Attribution is required when this data is published.
 - Lamp meanings, drive advice and safety grading: original work in this repository.
+- Lamp pictograms: Material Design Icons (Apache-2.0, Pictogrammers) plus original OBDCode UK drawings for oil-pressure, DPF and glow-plug. Not ISO 2575 official artwork. Sources in `assets/svg/`.
 
 Not affiliated with DVSA or DVLA.

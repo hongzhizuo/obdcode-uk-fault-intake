@@ -1,0 +1,20 @@
+Lamp artwork in this directory
+
+Material Design Icons (Apache License 2.0)
+Copyright Pictogrammers / contributors
+https://github.com/Templarian/MaterialDesign
+Vendored from @mdi/svg 7.4.47:
+  coolant-temperature, car-brake-alert, airbag, steering (in 05),
+  engine-outline (in 06 and 07), car-battery, car-tire-alert,
+  car-brake-abs, car-traction-control
+See PICTOGRAMMERS-LICENSE.txt.
+
+Original pictograms (c) 2026 OBDCode UK, CC-BY-4.0 with the rest of this skill:
+  01-oil-pressure.svg  (Aladdin-can oil-pressure lamp)
+  09-dpf.svg
+  13-glow-plug.svg
+  radiating ticks on 07-engine-flashing.svg
+  exclamation mark on 05-power-steering.svg
+
+These are independently drawn cluster-style marks. They are not copies of
+ISO 2575 / ISO 7000 official artwork.

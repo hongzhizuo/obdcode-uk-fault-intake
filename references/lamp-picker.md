@@ -2,7 +2,7 @@
 
 Owners recognise **shapes on the cluster**, not names like "oil-pressure".
 
-The picker is **one picture**: `assets/cluster.png`. Numbers are printed on the lamps. Never replace it with a prose list of English names.
+The picker is **one picture**: `assets/cluster.png`. Numbers are printed on the lamps. The lamps are vector-sourced (see `assets/svg/`) and rasterized for chat. Never replace the picture with a prose list of English names.
 
 ## How to show it (do this)
 
