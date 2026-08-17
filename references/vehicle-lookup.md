@@ -128,11 +128,11 @@ From tier 1. Abridged; the plate appears nowhere in it.
 
 `fuel_type` is normalised to `petrol` / `diesel` / `hybrid` / `electric` / `unknown`; `fuel_raw` keeps the upstream wording.
 
-That field picks the lamp board (`references/boards.md`). After a successful lookup, if the lamp is not yet identified, show that board immediately — do not show the full 13-lamp cluster when fuel is known.
+Classify the lamp picture from **both** fields (`references/boards.md`). `fuel_type` alone is not enough: hybrid + Electric Diesel is the diesel picture; hybrid + missing `fuel_raw` is `unknown` (or ask petrol vs diesel hybrid). After a successful lookup, if the lamp is not yet identified, show that picture immediately — `board` is required. Empty `show_dashboard` args is a fail.
 
-There is no van or body-type field. Detect vans from make+model substrings listed in `references/boards.md`; vans only change the caption (`body=van`), not the lamps.
+There is no van or body-type field. Optional `body=van` is speech only ("your Transit"). Same PNG as the fuel picture. Do not call it a van board.
 
-If lookup fails, `board=unknown` (full `cluster.png`) and ask the owner for fuel when you ask make, year, and mileage.
+If lookup fails, ask the owner for fuel with make, year, and mileage, then the matching picture. `unknown` only if they do not know fuel. Never default electric.
 
 Tests come newest first. Odometer readings across tests give an annual mileage, worth mentioning when a fault is mileage-related.
 
@@ -150,13 +150,13 @@ Registration, MOT test numbers, and other unique upstream ids are stripped befor
 
 The plate is personal data. The hosted service keeps registrations out of URLs and access logs, keys its cache by SHA-256 of the plate, and never echoes the plate in a success or error body. An integration must not undo that.
 
-- Use the plate for the lookup, then discard it.
+- Use the plate for the lookup. Do not print it afterwards.
 - Never write it to a file, a log, a commit message, a filename, or a URL.
 - Refer to the vehicle as "your 2016 Fiesta", never by plate.
 - Do not cache the response anywhere the user did not ask for.
 - If asked to save the fault statement, strip the plate from it first.
-- Ask before sending a plate. It is the owner's identifier, not yours.
-- Never put the plate in the lamp-picker turn's logs or files either.
+- They already typed it in the first message. Do not ask consent again. Do not claim the thread has discarded it.
+- For 400: "That registration was not accepted. Type it again with no spaces." Never repeat the value.
 
 ## Terms
 

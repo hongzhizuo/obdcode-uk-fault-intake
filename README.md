@@ -2,7 +2,7 @@
 
 An agent skill that takes two inputs — a **UK number plate** and **a pick from one of thirteen dashboard lamps** — and turns them into a structured, garage-ready description of a car fault.
 
-The owner does not have to know the lamp's name. They give the plate and point at a **dashboard picture** whose shapes match the symbols on the car. Which picture they see depends on the car — petrol, diesel, hybrid, or electric. The numbers stay **1–13 globally** (9 is always DPF, even when a petrol board omits it).
+The owner does not have to know the lamp's name. They give the plate and point at a **dashboard picture**. Which picture they see depends on petrol, diesel, hybrid, or electric. Numbers stay **global** (9 is always DPF). Empty grey slots mark lamps this car does not have, so people do not count cells. The engine cell is 6; flashing is spoken as 7.
 
 It identifies the vehicle from its official MOT record, grades how urgent the lamp is, cross-references the car's own MOT defect history, and writes a statement the owner can read aloud at a service desk.
 
@@ -34,24 +34,28 @@ It is not a fault-code dictionary and does not include SAE J2012 definitions.
 
 ```bash
 git clone <repo-url> ~/.cursor/skills/obdcode-uk-fault-intake
-git clone <repo-url> ~/.agents/skills/obdcode-uk-fault-intake
 ```
 
-The skill loads from ambient context. Both of these are valid triggers:
-
-- Already picked: `reg AB12CDE, lamp 6` or `reg AB12CDE, engine-steady`
-- Not yet picked: `amber engine light on, plate AB12CDE` — open the still dashboard PNG and ask which number is lit, unless a red lamp is already named
-
-Cursor's Read tool shows images to the model, not in the owner's chat. After cloning, add this to `~/.cursor/mcp.json` (keep any servers you already have) and reload MCP / restart Cursor:
+Point `~/.cursor/mcp.json` at **that same checkout**:
 
 ```json
 "obdcode-uk-fault-intake": {
   "command": "python3",
-  "args": ["/ABS/PATH/TO/obdcode-uk-fault-intake/scripts/show_lamps_mcp.py"]
+  "args": ["-u", "/ABS/PATH/TO/obdcode-uk-fault-intake/scripts/show_lamps_mcp.py"]
 }
 ```
 
-Then **start a new agent conversation** — old threads will not reload the skill. A passing first run is a plate only: look the vehicle up, then open the matching `cluster-*.png` (not the full 13 if fuel is known). A passing safety run is an oil lamp while driving: the first sentence is stop, and lookup comes after.
+Reload MCP, then start a **new** Agent chat. Old threads will not reload the skill or the tools.
+
+Triggers:
+
+- Already picked: `reg AB12CDE, lamp 6` or `reg AB12CDE, engine-steady`
+- Not yet picked: `plate AB12CDE` — lookup, then `show_dashboard` with **required** `board=`, then `open_resource`, then ask which circled number is lit
+- Named engine light: ask steady vs flashing; do not open the cluster unless they are unsure
+
+Do not ask if they are driving. Drive advice belongs in the statement.
+
+A passing first run is a plate only: matching `cluster-*.png` (not the full 13 if fuel is known; empty `board` is a fail). A passing oil run names the oil-can and puts Stop + recovery in **[Drive advice]**, without a parking quiz.
 
 ## Layout
 
@@ -65,10 +69,10 @@ Then **start a new agent conversation** — old threads will not reload the skil
 | `assets/lamp-*.png` | The 13 glowing lamps (rasterized from SVG for chat) |
 | `assets/svg/` | Vector sources: MDI Apache-2.0 plus three original pictograms |
 | `scripts/compose_cluster.py` | Rasterizes the SVGs and rebuilds all boards |
-| `scripts/show_lamps_mcp.py` | MCP: `show_dashboard` (`board=`, optional `body=`) / `show_lamp` |
+| `scripts/show_lamps_mcp.py` | MCP: `show_dashboard` (**required** `board=`, optional `body=` speech only) / `show_lamp` |
+| `references/examples.md` | Plate-then-petrol-board, oil Stop+recovery, diesel Transit DPF, electric 12V, GPF, AdBlue, glow went out |
 | `references/warning-lights.md` | Thirteen UK dashboard lamps with safety grading and drive advice |
 | `references/vehicle-lookup.md` | Three access tiers, response shape, privacy rules |
-| `references/examples.md` | Worked runs: plate-then-petrol-board, oil-lamp stop-first, diesel van DPF, electric 12V lamp, not_found, unmatched lamp, diagnosis refused |
 
 ## Vehicle lookup
 
@@ -78,17 +82,15 @@ Three tiers, tried in order. Everything below the first still produces a useful 
 2. **Your own DVSA credentials** — free registration at the [MOT History API portal](https://documentation.history.mot.api.gov.uk/mot-history-api/register), roughly one to five working days.
 3. **Ask the owner** — make, model, year, fuel, mileage. Always available, no network needed.
 
-Tier 1 does more than return the raw record: it resolves DVSA's certificate wording to known advisories with an explanatory URL, and tells you when the same fault has been flagged across several tests. That repeat-defect signal is the most useful thing the skill can hand a garage.
+Tier 1 also resolves DVSA certificate wording to known advisories. A slug that appears on more than one certificate is a prior note, not proof of today's lamp.
 
 The service enforces a daily ceiling on lookups that reach DVSA, shared across all callers. Do not burst plates to probe it.
 
-A number plate is personal data. It is used for one lookup and then discarded: never written to a file, a log, a URL, or a commit.
+A number plate is personal data. Do not print, file, URL, or commit it after the lookup.
 
 ## Safety
 
-Safety advice is ordered ahead of everything else, including any product or tool mention. Picker ids **1**, **2**, **3**, **7**, and **8-with-extra-symptoms** (heavy steering, a rising temperature gauge, or a belt noise) are stop-first. That triage happens **before** the vehicle lookup, because a driver may not have the seconds that lookup takes and you don't need to know the model to know that a red oil-pressure lamp means stop.
-
-Whether a lamp constitutes an MOT defect depends on the vehicle's first-use date and whether the system is fitted. The skill links to the [DVSA inspection manual](https://www.gov.uk/guidance/mot-inspection-manual-for-private-passenger-and-light-commercial-vehicles) rather than asserting rules from memory.
+Stop / recovery is **[Drive advice]** in the statement, not a flow lock and not a "are you driving?" quiz. They are using this on a computer or phone. Oil, red coolant, hydraulic brake (parking brake off), flashing engine, and ICE battery-plus-belt still grade as Stop in that block. Airbag is Limited. MOT outcome language is gated on first-use date and fuel.
 
 ## Data sources
 

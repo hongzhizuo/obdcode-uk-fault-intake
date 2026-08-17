@@ -1,184 +1,117 @@
 # Worked examples
 
-These conversations are **illustrative**.
+Illustrative. The owner plate in prose is always `AB12CDE` (fictional). After lookup, refer to the car as "your 2016 Fiesta" or "your Transit", never by plate.
 
-The vehicle card matches the public `POST /api/vehicle` response shape.
+Do not ask if they are driving. Stop / recovery belongs in **[Drive advice]**.
 
-The owner plate in the prose is always `AB12CDE` (fictional).
-
-After a lookup, refer to the car as "your 2016 Fiesta" or "your Transit", never by plate.
-
-When the owner only sent a plate, look the vehicle up first, then show the fuel-specific board. Example B is the exception: a named stop lamp while driving is stop-first, before lookup.
-
-MOT records are Crown copyright. Lamp advice is original to this skill.
-
-## Example A — main path: plate first, lookup, petrol board, then lamp 6 `engine-steady`
-
-Owner starts with a plate and no lamp. The agent **looks the vehicle up first**. The illustrative card is a 2016 Fiesta petrol. Then the agent shows the **petrol board** (`cluster-petrol.png` via `show_dashboard` `board=petrol`), not the full 13-lamp cluster. DPF 9 and glow-plug 13 are not on this picture. A name-only list is a fail.
+## Example A — plate first, petrol picture, lamp 6 then flashing check
 
 **Owner:** plate AB12CDE
 
-Lookup is `POST /api/vehicle` with `{"reg":"AB12CDE"}`. Illustrative card (same shape as the live contract):
+Lookup `POST /api/vehicle` `{"reg":"AB12CDE"}`. Illustrative card: 2016 Fiesta petrol, 998cc, MOT due 1 March 2027, last test 61,201 mi, fusion includes brake-pads-wearing-thin, no emissions-family defects.
 
-```
-make FORD / model FIESTA / petrol / 998cc / year 2016 / colour Blue
-first_used 2016-03-14 / mot_due 2027-03-01
-last test 2026-03-02 PASSED 61201 mi
-advisories: Front Brake pad(s) wearing thin; Nearside Front Tyre worn close to legal limit
-fusion.matched includes brake-pads-wearing-thin count 1
-NO emissions/exhaust/catalyst/lambda/smoke defects
-```
-
-**Agent:** Opens the petrol dashboard PNG (`show_dashboard` with `board=petrol`, then `open_resource` on the `file://` preview of `cluster-petrol.png`) and asks which **number on the picture** is lit. This board is for a petrol car. DPF 9 and glow-plug 13 are not on this picture. A name-only list is a fail. An iframe or clickable widget is not required.
+**Agent:** `show_dashboard` `board=petrol` (required), then `open_resource`. Asks which **circled** number. Does not say reply 1–13. Does not list names.
 
 **Owner:** 6
 
-**Agent:** Calls MCP `show_lamp` with number 6 so they can confirm the shape. Asks only what the menu cannot know.
+**Agent:** Same turn: this is the engine outline. Steady or flashing? Drive with care unless it is flashing. Anything feel different?
 
-**Agent:** When did it start, and has power, noise, smell, smoke, steering or temperature changed?
+**Owner:** Steady. This morning. Drives normally.
 
-**Owner:** This morning. The car drives normally. No smoke.
-
-Then the statement the owner can read aloud:
+Spoken card (~70 words), then stop:
 
 **[Vehicle]** Your 2016 Fiesta, 998 cc petrol · 61,201 miles · MOT due 1 March 2027.
 
-**[Showing]** Amber engine-block outline, steady (`engine-steady`).
+**[Showing]** Amber engine outline, steady.
 
-**[Since]** This morning, in normal use.
+**[Since]** This morning. Drives normally.
 
-**[Symptoms]** Drives normally. No smoke. No reported change in power, noise, smell, steering or temperature.
+**[History]** No emissions-family notes on this car's MOT record. This does not show the cause of today's lamp.
 
-**[History]** There are no related MOT defects in the emissions, exhaust, catalyst, lambda or smoke family. Unrelated advisories exist on a different system: front brake pads wearing thin (`brake-pads-wearing-thin`, count 1) and a nearside front tyre worn close to the legal limit. Those do not explain this lamp.
+**[Drive advice]** Drive with care. If it starts flashing, do not drive it in; arrange recovery. A scan is the next step. The lamp does not name the fault.
 
-**[Drive advice]** Drive with care. If it starts flashing, stop as soon as it is safe, switch off, and do not restart to get home. A scan is the correct next step. The lamp does not name the fault.
+**[Ask the garage]** Read the stored code and the freeze frame before replacing anything. Does the diagnostic fee come off the repair?
 
-**[Ask the garage]** Please read the stored code and the freeze frame before replacing anything. Does the diagnostic fee come off the repair? Check this car against the [DVSA inspection manual](https://www.gov.uk/guidance/mot-inspection-manual-for-private-passenger-and-light-commercial-vehicles) rather than assuming the MOT outcome.
+If they then ask "so is it the cat?", example E.
 
-The agent **stops**. If the owner then asks "so is it the cat?", the reply is example E.
+## Example B — oil lamp named, plate in the same message
 
-## Example B — safety path: oil lamp while driving, lamp 1 `oil-pressure`
+**Owner:** oil light is on, plate AB12CDE
 
-Owner names a stop lamp and is already driving. The first assistant message is **stop**. No lookup in that message.
-
-**Owner:** oil light is on, I'm driving, plate AB12CDE
-
-**Agent:** Stop as soon as it is safe. Pull over, switch off, and do not restart to get home. This is the red oil-can. It means oil is not at pressure. Confirm when you have stopped.
-
-**Owner:** I've stopped and switched off.
-
-Then lookup `{"reg":"AB12CDE"}` (same illustrative card as A). Then the statement.
+**Agent:** Does **not** ask if they are driving. Lookup. Statement with Stop + recovery. No picker.
 
 **[Vehicle]** Your 2016 Fiesta, 998 cc petrol · 61,201 miles · MOT due 1 March 2027.
 
-**[Showing]** Red oil-can (`oil-pressure`).
+**[Showing]** Red oil-can.
 
-**[Since]** Came on while driving.
+**[Drive advice]** Stop. Do not drive it in. Ask the garage to collect, or call recovery. A correct dipstick reading once cold does not make it safe to restart.
 
-**[Symptoms]** Lamp on in motion. No further symptoms given.
+**[Since]** (owner facts) How long was the lamp on? Any engine noise? When was the oil last changed?
 
-**[History]** No oil-pressure-related items on this car's MOT record.
+## Example C — `not_found`
 
-**[Drive advice]** Stop now. Do not drive to a garage. Arrange recovery. A correct dipstick reading once the engine is completely cool does not make the car safe to restart. No owner repair of bearings.
+Live probe 17 August 2026: `{"reg":"ZZ99ZZZ"}` → 404 `not_found`.
 
-**[Ask the garage]** How long was the lamp on before you stopped? Did the engine make any noise? When was the oil last changed?
-
-## Example C — live `not_found` (short)
-
-Live probe on 17 August 2026: `POST /api/vehicle` `{"reg":"ZZ99ZZZ"}` → HTTP 404 `{"status":"not_found"}`.
-
-**Agent:** New and some imported cars may have no MOT record yet. What is the make, year, fuel, and approximate mileage?
+**Agent:** New and some imported cars may have no MOT yet. Make, year, fuel, mileage? Does **not** open the unknown 13-lamp picture first.
 
 **Owner:** 2014 Golf 2.0 TDI, about 80,000 miles.
 
-**Agent:** `show_dashboard` `board=diesel` (owner-stated fuel), then they pick lamp 6. The statement still happens. Do not invent a DVSA history.
+**Agent:** `show_dashboard` `board=diesel`. They pick 6, say not flashing. Thinner statement. Do not invent MOT history.
 
-**[Vehicle]** Your 2014 Golf 2.0 TDI · about 80,000 miles (owner-stated). No MOT record available.
-
-**[Showing]** Amber engine-block outline, steady (`engine-steady`).
-
-**[Since]** Not given in this example.
-
-**[Symptoms]** Not given in this example.
-
-**[History]** This is owner-stated, not this car's MOT record.
-
-**[Drive advice]** Drive with care. If it starts flashing, stop as soon as it is safe, switch off, and do not restart to get home. A scan is the correct next step. The lamp does not name the fault.
-
-**[Ask the garage]** Please read the stored code and the freeze frame before replacing anything. Does the diagnostic fee come off the repair?
-
-## Example D — unmatched lamp (short)
+## Example D — unnamed lamp, no plate
 
 **Owner:** there's a light on
 
-**Agent:** no plate yet, so `board=unknown` (full cluster). Does **not** default to `engine-steady`. Does not look up a plate it does not have.
+**Agent:** Asks plate or fuel. Does **not** open unknown as the homepage. Does **not** default to engine-steady.
 
-## Example E — diagnosis refusal (short)
-
-After example A:
+## Example E — diagnosis refusal
 
 **Owner:** so is it the catalytic converter?
 
-**Agent:** This skill does not diagnose. The lamp does not name the part. Hand the statement to the garage. Continue as a normal assistant. Do not invent a cause.
+**Agent:** This skill does not diagnose. The lamp does not name the part. Hand the statement to the garage. If they ask whether they can keep driving, restate drive advice. Do not say "continue as a normal assistant."
 
 ## Example F — repo hygiene
 
-The published skill must not contain:
+No real registrations. No SAE J2012 tables. Only `AB12CDE` as the owner plate.
 
-- Real registrations
-- SAE J2012 definition tables
-- Site source paths
+## Example G — diesel Transit, lamp 9
 
-This file uses only `AB12CDE` as the owner plate.
+Lookup: TRANSIT, `fuel_type` diesel.
 
-## Example G — diesel van: lamp 9 `dpf` (short)
-
-Owner starts with a plate and no lamp. Lookup first. The card is a Transit, `fuel_type` diesel. Then the diesel van board — not a car cluster and not a petrol board.
-
-**Owner:** plate AB12CDE
-
-Lookup is `POST /api/vehicle` with `{"reg":"AB12CDE"}`. Illustrative card:
-
-```
-make FORD / model TRANSIT / fuel_type diesel / year 2018
-```
-
-**Agent:** `show_dashboard` with `board=diesel` `body=van`, then `open_resource` the `file://` preview. Caption: this board is for a diesel van. Asks which **number on the picture** is lit.
-
-**Owner:** 9
-
-**Agent:** Calls MCP `show_lamp` with number 9 (`dpf`). Then the statement. Refer to **your Transit**, never the plate.
+**Agent:** `show_dashboard` `board=diesel`. Same diesel picture. Call it **your Transit**, not a van board. They pick 9.
 
 **[Vehicle]** Your Transit, diesel.
 
-**[Showing]** Amber exhaust box with dots (`dpf`).
+**[Showing]** Amber exhaust box with dots (DPF).
 
-**[Drive advice]** Limited driving. A handbook regeneration drive is the usual first attempt if the van is driving normally. If the lamp flashes, a red warning appears, the van is in limp mode, or the oil level has risen above maximum, do not keep repeating motorway runs.
+**[Drive advice]** Limited. Drive directly there, no extra journeys. One handbook regen if it is driving normally. If it flashes, a red warning appears, limp mode, or the oil is over maximum: do not keep repeating motorway runs. Do not drive it in if those apply — arrange recovery.
 
-The agent **stops**. It does not diagnose.
+**[Ask the garage]** Soot load and differential pressure. Not a soot-vs-ash fork.
 
-## Example H — electric car: lamp 8 `battery-charging` (short)
+## Example H — electric, lamp 8
 
-Owner starts with a plate and no lamp. Lookup first. `fuel_type` electric. Then the electric board. That picture has no oil, engine, DPF or glow-plug.
+Lookup: LEAF, `fuel_type` electric. `show_dashboard` `board=electric`. They pick 8.
 
-**Owner:** plate AB12CDE
+**[Showing]** 12V charging rectangle, not the traction pack.
 
-Lookup is `POST /api/vehicle` with `{"reg":"AB12CDE"}`. Illustrative card:
+**[Drive advice]** Limited. Belt / water-pump / heavy-steering combo does not apply.
 
-```
-make NISSAN / model LEAF / fuel_type electric / year 2021
-```
+If they describe a turtle or a car-with-! and no skid lines: unmatched EV, not 12 or 8. Do not open the ICE unknown board.
 
-**Agent:** `show_dashboard` with `board=electric`, then `open_resource` the `file://` preview. This board has no oil (1), engine (6/7), DPF (9) or glow-plug (13). Asks which **number on the picture** is lit.
+## Example I — glow 13 went out after start
 
-**Owner:** 8
+Diesel board. They pick 13. It came on with ignition and went out.
 
-**Agent:** Calls MCP `show_lamp` with number 8 (`battery-charging`). On this board, 8 is the **12V** system, not the traction pack. Then the statement. Do not diagnose.
+**Agent:** That is the preheat cycle. Not a fault. No garage card.
 
-**[Vehicle]** Your 2021 Leaf, electric.
+## Example J — petrol GPF
 
-**[Showing]** Battery / charging (`battery-charging`). This is the 12V system, not traction-battery state of charge.
+Petrol picture. They say exhaust-dots, or they type 9.
 
-**[Drive advice]** Limited driving. The lamp does not name the part.
+**Agent:** Keep the petrol picture. 9 is an empty slot, not DPF. Unmatched petrol particulate-filter lamp. Drive with care. Scan. No regen copy. Still a thinner statement.
 
-The agent **stops**. It does not diagnose. It does not name a DC-DC converter, a traction pack, or any other cause.
+## Example K — AdBlue
+
+Diesel. They say AdBlue.
+
+**Agent:** Not on the picture. Not 9, not 6. Limited unless remaining-starts / no-start (then Stop, do not drive it in). Ask SCR / reagent status, not a parts fork.

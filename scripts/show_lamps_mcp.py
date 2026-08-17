@@ -21,7 +21,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 ASSETS = ROOT / "assets"
 SERVER_NAME = "obdcode-uk-fault-intake"
-SERVER_VERSION = "1.4.0"
+SERVER_VERSION = "1.5.0"
 PROTOCOL_FALLBACK = "2025-03-26"
 SUPPORTED_PROTOCOLS = frozenset({
     "2024-11-05",
@@ -58,22 +58,46 @@ BOARDS = {
     "electric": "cluster-electric.png",
 }
 BOARD_CAPTIONS = {
-    "unknown": "Match the shape that is lit. Reply with the number. If it flashes, say flashing.",
-    "petrol": "Petrol board — no DPF or glow-plug. Match the shape. Reply with the number.",
-    "diesel": "Diesel board — includes DPF (9) and glow-plug (13). Match the shape. Reply with the number.",
-    "hybrid": "Hybrid board — engine and 12V lamps still apply. Match the shape. Reply with the number.",
-    "electric": "Electric board — no oil, engine, DPF or glow-plug. 8 is the 12V system. Reply with the number.",
+    "unknown": (
+        "Use the circled number on this picture, not a count. "
+        "If it flashes, say flashing. Then open_resource the file:// URI."
+    ),
+    "petrol": (
+        "Petrol picture. Empty slots are not on this car. "
+        "Use the circled number. Exhaust-dots: they should say GPF, not 9."
+    ),
+    "diesel": (
+        "Diesel picture. 9 is DPF. 13 is only a fault if it stays on or "
+        "flashes after start. AdBlue is not drawn — they should say AdBlue."
+    ),
+    "hybrid": (
+        "Hybrid picture. Engine and 12V still apply. Use the circled number."
+    ),
+    "electric": (
+        "Electric picture. 8 is the 12V rectangle only. Turtle, car-with-!, "
+        "or a charge plug: they should say none of these — do not pick 12 or 8."
+    ),
+}
+
+ON_BOARD = {
+    "unknown": {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13},
+    "petrol": {1, 2, 3, 4, 5, 6, 7, 8, 10, 11, 12},
+    "diesel": {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13},
+    "hybrid": {1, 2, 3, 4, 5, 6, 7, 8, 10, 11, 12},
+    "electric": {2, 3, 4, 5, 8, 10, 11, 12},
 }
 
 TOOLS = [
     {
         "name": "show_dashboard",
         "description": (
-            "Put the numbered dashboard PNG on screen for this car's fuel. "
-            "Look the plate up first, then pass board=petrol|diesel|hybrid|"
-            "electric|unknown from fuel_type (see references/boards.md). "
-            "Then open_resource the file:// URI in the tool text. Do not "
-            "replace this with a text list of lamp names."
+            "Copy this car's numbered dashboard PNG for the owner. board is "
+            "required: petrol|diesel|hybrid|electric|unknown from fuel_type "
+            "and fuel_raw (see references/boards.md). Empty args is a fail, "
+            "not the full 13-lamp picture. Then open_resource the file:// URI "
+            "in the same turn before asking which circled number is lit. If "
+            "this tool is missing, tell the operator to reload MCP and start "
+            "a new Agent chat. Do not list lamp names."
         ),
         "inputSchema": {
             "type": "object",
@@ -81,22 +105,23 @@ TOOLS = [
                 "board": {
                     "type": "string",
                     "enum": ["petrol", "diesel", "hybrid", "electric", "unknown"],
-                    "description": "Fuel board after plate lookup. unknown = all 13 lamps.",
+                    "description": "Required. unknown only when lookup failed and fuel is still unknown.",
                 },
                 "body": {
                     "type": "string",
                     "enum": ["car", "van"],
-                    "description": "Caption only. Vans use the same lamps as the fuel board.",
+                    "description": "Speech only. Same PNG as the fuel board. Prefer saying your Transit, not van board.",
                 },
             },
+            "required": ["board"],
             "additionalProperties": False,
         },
     },
     {
         "name": "show_lamp",
         "description": (
-            "Put one lamp PNG on screen so they can confirm the shape. "
-            "Pass the number printed on the cluster (1-13)."
+            "Optional confirm PNG for one lamp after a valid pick. Skip unless "
+            "they hesitate. Pass the circled number (1-13)."
         ),
         "inputSchema": {
             "type": "object",
@@ -146,7 +171,12 @@ def picture(path: Path, caption: str, dest: Path) -> dict:
             },
             {
                 "type": "text",
-                "text": f"{caption} Open this file next: {preview}",
+                "text": (
+                    f"{caption} If the owner cannot see the picture, "
+                    f"open_resource this URI in the same turn: {preview}. "
+                    "If that fails, say the picture did not open. "
+                    "Do not list lamp names. Do not ask for a number."
+                ),
                 "annotations": {"audience": ["user", "assistant"]},
             },
         ]
@@ -189,23 +219,35 @@ def cluster_path(board: str) -> Path:
 def dashboard_caption(board: str, body: str) -> str:
     text = BOARD_CAPTIONS.get(board, BOARD_CAPTIONS["unknown"])
     if body == "van":
-        return f"Van board ({board}). {text}"
+        return f"Same {board} picture. Call it your van, not a van board. {text}"
     return text
 
 
 def call_tool(name: str, args: dict | None) -> dict:
     args = args or {}
     if name == "show_dashboard":
-        board = str(args.get("board") or "unknown").strip().lower()
+        raw = args.get("board")
+        if raw is None or str(raw).strip() == "":
+            return error_content(
+                "board is required (petrol|diesel|hybrid|electric|unknown). "
+                "Empty args is a fail — do not show the full 13-lamp picture."
+            )
+        board = str(raw).strip().lower()
         if board not in BOARDS:
-            board = "unknown"
+            return error_content(
+                f"Unknown board {board!r}. Use petrol|diesel|hybrid|electric|unknown."
+            )
         body = str(args.get("body") or "car").strip().lower()
         if body not in {"car", "van"}:
             body = "car"
         path = cluster_path(board)
         if not path.is_file():
             return error_content(f"Missing {path}")
-        return picture(path, dashboard_caption(board, body), PREVIEW_PNG)
+        extra = (
+            f" Circled numbers on this picture: "
+            f"{', '.join(str(n) for n in sorted(ON_BOARD[board]))}."
+        )
+        return picture(path, dashboard_caption(board, body) + extra, PREVIEW_PNG)
     if name == "show_lamp":
         resolved = resolve_lamp(args)
         if isinstance(resolved, str):
@@ -236,11 +278,12 @@ def handle(msg: dict) -> dict | None:
                 "capabilities": {"tools": {}},
                 "serverInfo": {"name": SERVER_NAME, "version": SERVER_VERSION},
                 "instructions": (
-                    "Look the plate up first, classify board from fuel_type "
-                    "(petrol/diesel/hybrid/electric/unknown), then "
-                    "show_dashboard with that board. open_resource the "
-                    "file:// URI. Ask which number is lit. After a pick, "
-                    "show_lamp. Vans: body=van, same lamps."
+                    "board is required on show_dashboard. Classify from "
+                    "fuel_type and fuel_raw. Same turn: open_resource the "
+                    "file:// URI, then ask which circled number is lit. "
+                    "If this server is missing, reload MCP and start a new "
+                    "Agent chat. Do not list lamp names. Do not ask if they "
+                    "are driving. Vans: same PNG, say your Transit."
                 ),
             },
         }
@@ -336,12 +379,19 @@ def serve() -> None:
 
 
 def self_test() -> int:
+    missing = call_tool("show_dashboard", {})
+    if not missing.get("isError"):
+        print("FAIL empty board should error", file=sys.stderr)
+        return 1
     for board, filename in BOARDS.items():
         path = ASSETS / filename
         if not path.is_file():
             print(f"FAIL missing {filename}", file=sys.stderr)
             return 1
         result = call_tool("show_dashboard", {"board": board})
+        if result.get("isError"):
+            print(f"FAIL {board} {result}", file=sys.stderr)
+            return 1
         image = result["content"][0]
         if image["type"] != "image" or image["mimeType"] != CURSOR_IMG_MIME:
             print(f"FAIL {board} image {image}", file=sys.stderr)
@@ -354,13 +404,17 @@ def self_test() -> int:
             print(f"FAIL {board} bytes mismatch", file=sys.stderr)
             return 1
     van = call_tool("show_dashboard", {"board": "diesel", "body": "van"})
-    if "Van board" not in van["content"][-1]["text"]:
-        print("FAIL van caption", file=sys.stderr)
+    text = van["content"][-1]["text"]
+    if "Van board" in text:
+        print("FAIL old van-board caption", file=sys.stderr)
         return 1
+    if "your van" not in text.lower() and "Transit" not in text:
+        if "same diesel picture" not in text.lower():
+            print(f"FAIL van caption {text!r}", file=sys.stderr)
+            return 1
     if not PREVIEW_PNG.is_file():
         print("FAIL preview missing", file=sys.stderr)
         return 1
-    text = van["content"][-1]["text"]
     if "file://" not in text:
         print("FAIL no file uri in caption", file=sys.stderr)
         return 1

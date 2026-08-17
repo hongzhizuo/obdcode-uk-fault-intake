@@ -35,37 +35,43 @@ LAMPS = [
 ]
 BY_N = {row[0]: row for row in LAMPS}
 
-# Numbers are global. 9 is always DPF even when a petrol board omits it.
+# Layout numbers stay global. 7 is not drawn: one engine cell (6), flashing is spoken.
+# Ghost slots keep omitted numbers in place so people do not count cells.
 BOARDS = {
     "unknown": {
         "file": "cluster.png",
-        "tag": "Match the shape. Reply with the number.",
+        "tag": "Use the circled number. Do not count 1, 2, 3.",
         "left": "RPM",
-        "ids": [1, 2, 3, 4, 5, 8, 6, 7, 9, 10, 11, 12, 13],
+        "red": [1, 2, 3, 4, 5, 8],
+        "amber": [6, 9, 10, 11, 12, 13],
     },
     "petrol": {
         "file": "cluster-petrol.png",
-        "tag": "Petrol — no DPF or glow-plug on this board.",
+        "tag": "Petrol. Empty slots are not on this car. Exhaust-dots: say GPF, not 9.",
         "left": "RPM",
-        "ids": [1, 2, 3, 4, 5, 8, 6, 7, 10, 11, 12],
+        "red": [1, 2, 3, 4, 5, 8],
+        "amber": [6, "ghost-9", 10, 11, 12, "ghost-13"],
     },
     "diesel": {
         "file": "cluster-diesel.png",
-        "tag": "Diesel — DPF (9) and glow-plug (13) are on this board.",
+        "tag": "Diesel. 9 is DPF. 13 is a fault only if it stays on or flashes after start. AdBlue: say AdBlue.",
         "left": "RPM",
-        "ids": [1, 2, 3, 4, 5, 8, 6, 7, 9, 10, 11, 12, 13],
+        "red": [1, 2, 3, 4, 5, 8],
+        "amber": [6, 9, 10, 11, 12, 13],
     },
     "hybrid": {
         "file": "cluster-hybrid.png",
-        "tag": "Hybrid — engine and 12V battery lamps still apply.",
+        "tag": "Hybrid. Engine and 12V still apply. Empty slots are not on this car.",
         "left": "RPM",
-        "ids": [1, 2, 3, 4, 5, 8, 6, 7, 10, 11, 12],
+        "red": [1, 2, 3, 4, 5, 8],
+        "amber": [6, "ghost-9", 10, 11, 12, "ghost-13"],
     },
     "electric": {
         "file": "cluster-electric.png",
-        "tag": "Electric — no oil, engine, DPF or glow-plug. 8 is the 12V system.",
+        "tag": "Electric. 8 is the 12V rectangle only. Turtle / car-with-! / plug: say none of these.",
         "left": "PWR",
-        "ids": [2, 3, 4, 5, 8, 10, 11, 12],
+        "red": ["ghost-1", 2, 3, 4, 5, 8],
+        "amber": ["ghost-6", "ghost-9", 10, 11, 12, "ghost-13"],
     },
 }
 
@@ -174,20 +180,43 @@ def make_cell(n: int, png_name: str, kind: str) -> Image.Image:
     oy = 6
     cell.alpha_composite(icon, (ox, oy))
     if n == 6:
-        caption(cell, "STEADY", AMBER)
-    elif n == 7:
-        caption(cell, "FLASHING", AMBER)
+        caption(cell, "FLASHING = 7", AMBER)
+    elif n == 13:
+        caption(cell, "START-UP OK", AMBER)
     stamp_number(cell, n, colour)
     return cell
 
 
-def row_of(items: list[tuple[int, str, str, str]]) -> Image.Image:
-    n = len(items)
+def make_ghost(n: int, kind: str) -> Image.Image:
+    colour = RED if kind == "red" else AMBER
+    cell = Image.new("RGBA", (CELL, CELL), (0, 0, 0, 0))
+    d = ImageDraw.Draw(cell)
+    d.rounded_rectangle((0, 0, CELL - 1, CELL - 1), radius=16, outline=(70, 72, 80, 255), width=2)
+    f = font(11, bold=True)
+    t = "NOT THIS CAR"
+    bbox = d.textbbox((0, 0), t, font=f)
+    tw = bbox[2] - bbox[0]
+    d.text(((CELL - tw) / 2, CELL / 2 - 18), t, font=f, fill=MUTED)
+    stamp_number(cell, n, colour)
+    return cell
+
+
+def layout_cell(slot) -> Image.Image:
+    if isinstance(slot, str) and slot.startswith("ghost-"):
+        n = int(slot.split("-", 1)[1])
+        kind = BY_N[n][3]
+        return make_ghost(n, kind)
+    n_id, _svg, png_name, kind = BY_N[int(slot)]
+    return make_cell(n_id, png_name, kind)
+
+
+def row_of(slots: list) -> Image.Image:
+    n = len(slots)
     w = n * CELL + (n - 1) * GAP
     row = Image.new("RGBA", (w, CELL), (0, 0, 0, 0))
     x = 0
-    for n_id, _svg, png_name, kind in items:
-        row.alpha_composite(make_cell(n_id, png_name, kind), (x, 0))
+    for slot in slots:
+        row.alpha_composite(layout_cell(slot), (x, 0))
         x += CELL + GAP
     return row
 
@@ -201,7 +230,6 @@ def render_lamp_pngs() -> None:
 
 
 def compose_cluster(board_id: str, spec: dict) -> None:
-    picked = [BY_N[n] for n in spec["ids"]]
     img = Image.new("RGBA", (W, H), BG)
     d = ImageDraw.Draw(img)
     rounded_rect(d, (24, 24, W - 25, H - 25), (22, 22, 26, 255), 36, outline=BEZEL, width=6)
@@ -220,10 +248,8 @@ def compose_cluster(board_id: str, spec: dict) -> None:
     draw_gauge(img, 148, 470, 100, spec["left"])
     draw_gauge(img, W - 148, 470, 100, "SPEED")
 
-    reds = [x for x in picked if x[3] == "red"]
-    ambers = [x for x in picked if x[3] == "amber"]
-    red_row = row_of(reds)
-    amber_row = row_of(ambers)
+    red_row = row_of(spec["red"])
+    amber_row = row_of(spec["amber"])
 
     well_w = max(red_row.width, amber_row.width) + 48
     well_h = red_row.height + amber_row.height + GAP + 88
@@ -246,7 +272,7 @@ def compose_cluster(board_id: str, spec: dict) -> None:
     img.alpha_composite(amber_row, (well_x + (well_w - amber_row.width) // 2, well_y + 40 + CELL + 36))
 
     foot = font(15)
-    ftxt = "Blue / green lamps are not faults. If none match, say so — the fuel board may be wrong."
+    ftxt = "Circled number, not a count. Blue/green are not faults. If none of these shapes match, say none."
     bbox = d.textbbox((0, 0), ftxt, font=foot)
     d.text(((W - (bbox[2] - bbox[0])) / 2, H - 72), ftxt, font=foot, fill=MUTED)
 

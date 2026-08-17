@@ -1,56 +1,71 @@
 # Vehicle boards
 
-After a successful plate lookup, pick **ONE** still PNG. Numbers are **GLOBAL**: 9 is always DPF even when a petrol board omits it. Never renumber.
+After a successful plate lookup, pick **ONE** still PNG. Numbers are **GLOBAL**: 9 is always DPF even when that slot is empty. Never renumber. **7 is not drawn** — one engine cell is 6; flashing is spoken as 7.
+
+They are on a computer or phone. Do not ask if they are driving.
 
 ## Classify fuel → board
 
-Use `vehicle.fuel_type` from `POST /api/vehicle` (`petrol` | `diesel` | `hybrid` | `electric` | `unknown`). Then `fuel_raw`. Apply **top row first**:
+Use `vehicle.fuel_type` **and** `fuel_raw`. Apply **top row first**:
 
 | fuel_type / raw | extra | board |
 |---|---|---|
-| diesel | | diesel |
-| hybrid | `fuel_raw` contains `diesel` (e.g. Electric Diesel) | diesel |
+| diesel | including 48V / mHEV still labelled diesel | diesel |
+| hybrid | `fuel_raw` contains diesel, electric diesel, or heavy oil (case insensitive) | diesel |
 | `Gas Diesel` in `fuel_raw` | | diesel |
-| hybrid | otherwise, including missing `fuel_raw` | hybrid |
+| hybrid | `fuel_raw` missing | **unknown** (or ask petrol vs diesel hybrid) |
+| hybrid | otherwise (Hybrid Electric, no diesel cue) | hybrid |
 | electric | | electric |
 | petrol | | petrol |
 | LPG / Gas / CNG / LNG / `Gas Bi-Fuel` in `fuel_raw` | not `Gas Diesel` | petrol |
 | unknown or missing | | unknown |
 
-Do not add AdBlue, turtle, HV-isolation, or EV-system ids. The 13 numbers stay closed.
+Never upgrade `fuel_type=diesel` to hybrid from a marketing name.
 
-MCP: `show_dashboard` with argument `board` set to that id (`petrol` | `diesel` | `hybrid` | `electric` | `unknown`). Then `open_resource` the `file://` preview.
+MCP: `show_dashboard` with **required** `board`. Empty args is a fail. Then `open_resource` the `file://` preview in the same turn.
 
 PNG files:
 
-- `unknown` → `assets/cluster.png` (all 13)
-- `petrol` → `assets/cluster-petrol.png` (hide 9, 13)
-- `diesel` → `assets/cluster-diesel.png` (all 13)
-- `hybrid` → `assets/cluster-hybrid.png` (same lamps as petrol)
-- `electric` → `assets/cluster-electric.png` (show 2, 3, 4, 5, 8, 10, 11, 12 only)
+- `unknown` → `assets/cluster.png`
+- `petrol` → `assets/cluster-petrol.png` (ghost 9 and 13)
+- `diesel` → `assets/cluster-diesel.png`
+- `hybrid` → `assets/cluster-hybrid.png` (ghost 9 and 13)
+- `electric` → `assets/cluster-electric.png` (ghost 1, 6, 9, 13)
 
 ## Lamps on each board
 
-| board | numbers shown |
-|---|---|
-| unknown / diesel | 1–13 |
-| petrol / hybrid | 1–8, 10–12 (no 9, 13) |
-| electric | 2–5, 8, 10–12 |
+| board | circled numbers that are live | empty ghost slots |
+|---|---|---|
+| unknown / diesel | 1–6, 8–13 (7 is spoken flashing on the engine cell) | — |
+| petrol / hybrid | 1–6, 8, 10–12 | 9, 13 |
+| electric | 2–5, 8, 10–12 | 1, 6, 9, 13 |
+
+## Off-board number
+
+Keep **this** board. Say that circled number is not printed. Ask them to read the circle on the matching shape. Widen to `unknown` only if they say **none of these shapes**.
+
+Never switch to a **smaller** board on owner talk (especially not electric). Caption from the record as fact. Do not ask them to audit petrol vs diesel.
+
+## Unmatched paths (still write a thinner statement)
+
+**GPF (petrol / hybrid):** exhaust-dots, or they pick 9. Not DPF. Drive with care. Scan. No regen copy.
+
+**AdBlue (diesel):** they say AdBlue / urea / DEF. Not 9, not 6. Limited driving; remaining-starts / no-start is Stop. Ask the garage for SCR / reagent status, not a parts fork.
+
+**EV:** turtle / limited power; car-with-! and no skid lines; charge plug; HV on-screen text. Not 12, not 8. Limited unless red or paired with a stop lamp. Tesla: accept pasted alert text.
+
+**Blue / green:** main beam, indicators, cruise, fog. Name the status function. Ask if any circled lamp is also on. Engine-cold blue thermometer: not id 2.
+
+**Glow 13 went out after start:** not a fault. No garage card.
 
 ## Van vs car
 
-No body-type field on the API. Scan make+model against the conservative list below. A hit sets `body=van`. No hit: leave body unset (treat as a car). **A false van on a car is worse than missing a rare van** — do not guess, and do not widen the list.
+No body-type field. Van does **not** change lamps and is **not** a fifth cluster. Say "your Transit" on the **fuel** picture. Do not say "van board."
 
-Van does **not** change lamps. Caption only: "your 2018 Transit — diesel van board".
-
-### Conservative lowercase substrings
-
-Join `make` and `model` with a single space, lowercase, turn hyphens into spaces, and **keep** the remaining spaces (do not delete them — `ranger` must not match Range Rover). Never scan for `van` or `nv` (`TIGUAN` contains `van`; `CONVERTIBLE` contains `nv`). If that string contains any of these substrings, set `body=van`:
+Optional `body=van` is speech only. Scan make+model (lowercase, hyphens → spaces, **keep** spaces so `ranger` does not match Range Rover). Never scan for `van` or `nv`.
 
 ```
 transit
-transit custom
-transit connect
 sprinter
 transporter
 crafter
@@ -65,7 +80,6 @@ daily
 vito
 citan
 caddy
-caddy maxi
 expert
 dispatch
 combo cargo
@@ -85,32 +99,12 @@ amarok
 ranger
 ```
 
-Use `combo cargo`, not bare `combo`. Use `transit custom` / `transit connect` as extra phrases; do not add bare `custom` or `connect`. Skip `berlingo`, `partner`, and `hercules` (passenger twins are too common).
+Skip `berlingo`, `partner`, bare `combo`, `custom`, `connect`, `hercules`. Dual-use models: ask van or car rather than guessing.
 
-Do **not** treat these as vans (passenger cars — never add them to the scan list):
-
-```
-fiesta
-focus
-golf
-kuga
-tiguan
-polo
-civic
-corolla
-yaris
-leaf
-model 3
-```
-
-## Owner talk
-
-Refer to "your 2016 Fiesta", never the plate. Say "this board is for a petrol car. If the fuel looks wrong, say so."
-
-If they pick a number not on this board, do not invent. Show the unknown/full board once.
+Do **not** treat as vans: fiesta, focus, golf, kuga, tiguan, polo, civic, corolla, yaris, leaf, model 3.
 
 ## Fallback
 
-Lookup fail → board `unknown` (ICE 13, never the electric subset). Owner says "it's a diesel" or "it's electric" → switch board and re-show.
+Lookup 404 → ask fuel, then matching board. 503 → ask fuel; `unknown` only if they do not know. Never default electric.
 
 Do not diagnose. Do not add new lamp ids.

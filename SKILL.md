@@ -1,6 +1,6 @@
 ---
 name: obdcode-uk-fault-intake
-description: Turns a UK number plate plus which dashboard warning lamp is lit into a garage-ready fault statement covering vehicle identity, the lamp, urgency, and this car's MOT history as context, then stops. It does not diagnose. When the owner gives a plate and has not picked a lamp, look the vehicle up first, classify petrol/diesel/hybrid/electric, then open that still dashboard PNG (MCP show_dashboard with board= then open_resource on the file:// preview) and ask which number on the picture is lit — do not list lamp names. Use when a UK driver gives a plate, registration or reg; mentions a dashboard warning light or warning lamp including oil pressure, engine management, EML or MIL; needs to pick a lamp from the dashboard cluster picture; sees an amber or red dashboard lamp; mentions MOT; or asks what to tell the garage.
+description: Turns a UK number plate plus which dashboard warning lamp is lit into a garage-ready fault statement covering vehicle identity, the lamp, urgency, and this car's MOT history as context, then stops. It does not diagnose. When the owner gives a plate and has not picked a lamp, look the vehicle up first, classify petrol/diesel/hybrid/electric from fuel_type and fuel_raw, then open that still dashboard PNG (MCP show_dashboard with required board= then open_resource on the file:// preview) and ask which circled number on the picture is lit — do not list lamp names. Do not ask if they are driving. Use when a UK driver gives a plate, registration or reg; mentions a dashboard warning light; needs to pick a lamp from the dashboard cluster picture; mentions MOT; or asks what to tell the garage.
 license: CC-BY-4.0
 metadata:
   author: OBDCode UK
@@ -9,155 +9,159 @@ metadata:
 
 # UK Vehicle Fault Intake
 
-Two inputs — a **UK number plate** and **which dashboard lamp is lit** — produce a garage-ready fault statement (vehicle identity, lamp, urgency, this car's MOT history as context). Then stop. Do not diagnose.
+Two inputs — a **UK number plate** and **which dashboard lamp is lit** — produce a garage-ready fault statement. Then stop. Do not diagnose.
 
-The lamp menu is a fixed set of 13 ids. The **picture** they pick from depends on the car: petrol, diesel, hybrid and electric boards are subsets of those 13. Numbers stay global — 9 is always DPF even when a petrol board omits it. Classify the board from the plate lookup (`references/boards.md`) before showing a PNG.
+They are using this skill on a computer or a phone. Do **not** ask if they are driving. Do **not** hold lookup, the picture, or the statement for a "have you stopped" confirmation. Stop / recovery belongs in **[Drive advice]**, not as a flow lock.
+
+The lamp menu is a fixed set of 13 ids. The **picture** depends on the car. Numbers stay global — 9 is always DPF even when a petrol board leaves that slot empty. 7 is not a second drawing: one engine cell is **6**, flashing is spoken (**7**). Classify the board from the plate lookup (`references/boards.md`) before showing a PNG.
 
 ## Scope
 
-**This skill does:** identify the vehicle (including fuel), show the matching lamp board, identify the lamp from that board, grade urgency, retrieve this car's MOT defect history, and write a fault statement.
+**This skill does:** identify the vehicle (including fuel), show the matching lamp board, identify the lamp, grade urgency, retrieve this car's MOT defect history as context, and write a fault statement.
 
-**This skill does not diagnose.** A steady amber engine lamp has hundreds of possible causes. Naming one is guessing. Describe the fault precisely enough that a mechanic can narrow it down.
+**This skill does not diagnose.** A steady amber engine lamp has hundreds of possible causes. Naming one is guessing.
 
-**Never reproduce SAE J2012 fault-code definitions.** A code number such as `P0420` is a fact and free to use. The standard's definition wording is not licensed for republication. This skill needs no code definitions: the input is a lamp, not a scan.
+**Never reproduce SAE J2012 fault-code definitions.** A code number such as `P0420` is a fact. The standard's definition wording is not licensed for republication.
 
-## Step 1 — Safety, from whatever is already known
+## Step 1 — Drive advice lives in the statement
 
-Run this **before the plate lookup and before a picker delay**. You do not need the model, and you must not wait for a menu reply, if speech or a pick already indicates a stop condition.
+Do not gate Steps 2–5 on whether they have parked.
 
-Tell the driver to **stop as soon as it is safe, switch off, and not restart to "get home"** if any of these apply:
+When you write **[Drive advice]**, use **Stop** (do not drive it in; arrange recovery) for:
 
 - `oil-pressure` (1)
-- `coolant-temp` (2), or the temperature gauge in the red
-- `brake-system` (3) with the handbrake fully released
+- `coolant-temp` (2) when the lamp is **red** (not the blue cold-engine twin — ask colour if they named a thermometer)
+- `brake-system` (3) only if the parking brake / EPB / Auto Hold is fully off and the lamp stays on, **or** they already reported a spongy pedal, a pull, or a leak
 - `engine-flashing` (7)
-- `battery-charging` (8) **plus** heavy steering, a rising temperature gauge, or a belt noise — one belt may drive the alternator, water pump and steering pump
+- `battery-charging` (8) **plus** heavy steering, a rising temperature gauge, or a belt noise — skip the belt combo on an electric car
 
-If they pick `brake-system` and have not confirmed the handbrake, ask that first. A partially applied handbrake is the usual cause; stop only once it is fully released and the lamp stays on.
+`safety_class: Red` is not Stop. Airbag is Red and **Limited**. Power steering is Stop only if the steering has gone heavy.
 
-Ask "are you driving right now?" if that is not already clear. If yes, lead with the stop instruction and hold the rest until they have stopped.
-
-If none of the stop conditions apply, continue.
+If they pick `brake-system` and have not mentioned the parking brake, ask whether it is fully off. That is classification, not a driving quiz.
 
 ## Step 2 — Identify the lamp (show the cluster picture, do not describe it)
 
-Owners match **shapes**, not names. A list of "oil-can / engine-block outline" is a fail. They will tell you which drawing is lit.
+Owners match **shapes**, not names. A list of "oil-can / engine-block outline" is a fail.
 
-Do not start with "what colour is it?". Do not guess the lamp from a vague description.
-
-- If the owner already named a lamp that maps to **exactly one** of the 13 ids, do not re-ask. Treat that as the pick.
-- Otherwise follow `references/lamp-picker.md`. Look the plate up first if you do not yet know the fuel (`references/boards.md`). Then call `show_dashboard` with that `board` (and `body=van` when the model is an LCV), then `open_resource` on the `file://` preview so they can see the matching cluster PNG. Ask which **number on the picture** is lit. A name list is not the picker. There is no clickable widget.
-- Ask them to reply with the **number printed on the matching lamp**, or an id. If it flashes, they should say flashing.
-- If they pick a number that is not on this board, say so and show the unknown/full board once. **Never force the nearest lamp.**
-- After a pick, call MCP `show_lamp` with that number in the same turn as any follow-up questions, so they can confirm the shape. Do not re-show the whole board.
-- After a pick, read that id in `references/warning-lights.md` for class, drive advice, owner-safe checks, garage questions, and MOT note.
-- Only ask extra behaviour questions when that id still needs them:
-  - `tyre-pressure` — did it flash for about a minute at startup and then stay steady (system fault), or is it simply on (likely low pressure)?
-  - `esc-traction` — flashing while driving (system intervening, often not a fault) versus steady (off or faulty)?
-  - `glow-plug` — normal ignition cycle that goes out, versus stays on after start, versus flashes?
-- Then ask only what the menu cannot know: **when it started**, and whether **power, noise, smell, smoke, steering or temperature** changed.
+- If speech maps to **exactly one** id, treat that as the pick — except the specials below.
+- **Engine family** ("engine light", EML, MIL, check engine): ask only **steady or flashing**. Do not open the cluster unless they are unsure. Flashing → 7. Do not treat a bare 6 as steady until they have said it is not flashing.
+- **Thermometer / coolant / temp light:** ask **blue or red** before id 2. Blue after a short run that then goes out is engine-cold, not a fault.
+- **AdBlue / urea / DEF:** not on any picture. Do not map to 9 or 6. Unmatched AdBlue path in `references/boards.md`.
+- **Petrol or hybrid + exhaust-dots / "particulate filter" / pick of 9:** unmatched GPF. Do not run diesel DPF copy. Do not switch board.
+- **Electric + turtle / tortoise / limited power / car-with-! and no skid lines / charge plug / HV on-screen text:** unmatched EV. Do not pick 12 or 8. Do not open the ICE unknown board.
+- Otherwise follow `references/lamp-picker.md`. Look the plate up first if you do not yet know the fuel. Call `show_dashboard` with **required** `board=`. Empty args is a fail. Then `open_resource` the `file://` preview **in the same turn**. If the picture did not open, say so. Do not list names. Do not ask for a number.
+- Ask for the **circled number on the matching shape**, not a left-to-right count. Empty grey slots are not on this car.
+- Off-board number (9 on petrol, 1 on electric): **keep the same board**. Say that number is not printed. Ask them to read the circle on the shape that is lit. Widen to `unknown` only if they say **none of these shapes**. Never shrink toward electric on owner talk. Never force the nearest lamp.
+- After a valid pick: one sentence to confirm the shape. Skip `show_lamp` unless they hesitate. Give **drive advice in that same turn**. Then one optional "anything feel different?" Default since/symptoms to "just now / drives normally" if they do not add more.
+- Extra behaviour questions only when needed:
+  - `tyre-pressure` — flash-then-steady at startup (system) vs simply on (likely low pressure)
+  - `esc-traction` — flashing (intervening) vs steady (off or faulty)
+  - `glow-plug` — went out after start (**not a fault**, no garage card) vs stays on vs flashes
+- 12 is skid-lines only.
 
 ### Order versus lookup
 
-Do not delay a named oil / coolant / brake / flashing-engine stop for lookup.
+- **Only a plate:** look it up now (Step 3). Do not print the plate. Classify from `fuel_type` **and** `fuel_raw` (`references/boards.md`). Then show that PNG.
+- **Lookup 404:** ask make, year, fuel, mileage. Then the matching board. Do not show unknown first. Never default electric.
+- **Lookup 503 / 429 after retry:** ask fuel. Matching board if they know; `unknown` only if they do not. Never default electric.
+- **Both in one message:** unique id → skip picker (except the specials). Engine family → steady vs flashing. Else lookup then the matching board.
+- **No plate, lamp unnamed:** ask plate or fuel. Do not open the unknown 13-lamp picture as the first screen.
+- **Named lamp, no plate:** write the lamp + drive advice. Ask plate (or make/year/fuel) for MOT history. Do not gate the advice on the plate.
 
-- **Lamp already picked and red-class:** safety first (Step 1), then plate lookup (Step 3). No picker.
-- **Only a plate so far:** look it up now (Step 3). Discard the plate. Classify the board from `fuel_type` (`references/boards.md`). Then show that PNG. Do not mention the plate. Do not show the full 13-lamp board when fuel is known.
-- **Lookup failed (404/503/429 after retry):** show `board=unknown` (all 13). Ask make, year, fuel, approx mileage. If they then say diesel or electric, switch board and re-show.
-- **Both in one message:** safety if speech is already a stop lamp. If speech maps to **exactly one** id, lookup then the statement — do not re-show the menu. If it does not (e.g. "engine light" is 6 or 7), lookup then the matching board, or ask only steady vs flashing. Never skip the picker just because a plate arrived in the same message.
-- **Driving, lamp unnamed:** lookup then the matching board unless speech already contains a stop lamp.
-
-If you are unsure what "good" looks like, read example A in `references/examples.md` — **lookup then the petrol (or matching) board**, not a name list.
-
-If the plate is still missing after the lamp is identified (and after any stop instruction), ask for it.
+Example A in `references/examples.md` is lookup then the matching board, not a name list.
 
 ## Step 3 — Identify the vehicle
-
-Look the plate up with this request. Do not invent a URL.
 
 ```
 POST https://obdcode.co.uk/api/vehicle
 Content-Type: application/json
 
-{"reg":"AB12CDE"}
+{"reg":"<the plate from this turn — do not print it>"}
 ```
 
 Hard rules:
 
 - The field name is `reg`, not `registration`. The wrong key returns **422**.
-- **POST body only.** Never put the plate in a URL, query string, log, filename, or commit.
-- If the agent speaks MCP: `POST https://obdcode.co.uk/mcp` tool `vehicle_by_plate` with `{"registration":"..."}`. If a browser `Origin` from another site is present, `/mcp` returns **403** — use `/api/vehicle` instead.
-- After the lookup, **discard the plate**. Refer to the car as "your 2016 Fiesta", never by plate.
-- Full contract: `references/vehicle-lookup.md`. Prefer `fusion.matched` on success. Then, if the lamp is still unknown, show the matching board immediately (`references/boards.md`) — that is part of this step, not a later extra.
-- If lookup fails, the rest of the skill still runs, thinner.
+- **POST body only.** Never put the plate in a URL, query string, log, filename, commit, or spoken reply.
+- If the agent speaks MCP: `POST https://obdcode.co.uk/mcp` tool `vehicle_by_plate` with `{"registration":"..."}`. A foreign `Origin` on `/mcp` is **403** — use `/api/vehicle`.
+- They already typed the plate. Do not ask consent again. Do not echo it. Refer to "your 2016 Fiesta". The chat still holds it; "discard" is output hygiene, not deletion.
+- Full contract: `references/vehicle-lookup.md`. Prefer `fusion.matched` on success. If the lamp is still unknown, show the matching board in this step.
+- Classify with `fuel_raw`, not `fuel_type` alone. Hybrid + missing raw → `unknown` (or ask petrol vs diesel hybrid). Hybrid + diesel / Electric Diesel / heavy oil → diesel board. Never upgrade `fuel_type=diesel` to hybrid from a marketing name.
+- If lookup fails, the rest still runs, thinner.
 
 | Status | Tell the owner | Next |
 |---|---|---|
 | 200 | (nothing about the API) | Continue |
-| invalid_registration (400) | Re-read the plate, no spaces | Stop and ask once more |
-| not_found (404) | New or imported cars may have no MOT yet | Ask make, year, fuel, approx mileage |
-| rate_limited (429) | Wait and retry once | Then fall back to asking the owner |
-| lookup_unavailable (503) | Official record not available right now | Ask the owner immediately; do not wait |
-
-Example C in `references/examples.md` is a not_found run that still produces a thinner statement.
+| invalid_registration (400) | That registration was not accepted. Type it again with no spaces. | Do not repeat the value |
+| not_found (404) | New or imported cars may have no MOT yet | Ask make, year, fuel, mileage, then the matching board |
+| rate_limited (429) | Wait and retry once | Then ask the owner |
+| lookup_unavailable (503) | Official record not available right now | Ask fuel immediately |
 
 Never invent an MOT history. If working from owner-stated make/year, say so once in [History].
 
-## Step 4 — Cross-reference this car's MOT history
+## Step 4 — This car's MOT history (context, not a cause)
 
-If the lookup returned `fusion.matched`, read that first. It has already resolved DVSA certificate wording to known advisories and deduped them across tests, so a `count` above 1 means the same fault was flagged more than once and never fixed. Lead with that — a repeat defect is far stronger evidence than a single old advisory. Where `match` is `null` the service declined a weak guess; quote the raw defect text instead of inventing a meaning for it.
+`fusion.matched` `count` above 1 means the **same slug appeared on more than one certificate**. It does not mean "never fixed" and it is not evidence that today's lamp is that fault.
 
-Then scan the defects for anything in the same system as the lamp. If there is no `fusion` block, this scan is all you have:
+Do not substring-scan raw defect text for `smoke` / `steering` / `valve`. If fusion exists, include a slug only when it is on the same-system allowlist for this lamp. Quote date and `type`. No causal verbs (`causing`, `explains`, `related fault`).
 
-| Lamp | Look for defects mentioning |
+| Lamp | Allowlist family |
 |---|---|
-| Engine management | emissions, exhaust, catalyst, smoke, lambda |
-| DPF | diesel particulate filter, smoke, emissions |
-| Battery / charging | battery security, wiring, auxiliary drive belt |
-| Brake system | brake fluid, pipes, hoses, discs, pads, imbalance |
-| ABS | ABS component, wheel speed sensor, brake imbalance |
-| Tyre pressure | tyre condition, tread depth, valve |
-| Power steering | steering, power steering fluid, track rod |
+| Engine management | emissions, exhaust, catalyst, lambda (not a diagnosis) |
+| DPF | diesel particulate filter |
+| Battery / charging | battery security, auxiliary drive belt |
+| Brake system | brake fluid, pipes, hoses, discs, pads |
+| ABS | ABS, wheel speed sensor |
+| Tyre pressure | tyre condition, tread, valve |
+| Power steering | steering, power steering fluid |
 
-An advisory from a previous test is **context, not proof**. Report it as context — "your 2025 test already noted a minor exhaust leak" — and let the mechanic decide.
+Every History line that names a prior note must end: **this does not show the cause of today's lamp.** If nothing in-family, one negative line is enough. Do not dump unrelated fusion slugs into speech.
 
-Also check whether the MOT is expired or **due within 30 days**. If the lamp is a Major-defect lamp, the car will likely fail as it stands, and that changes what the owner should book.
+**MOT outcome talk is gated on `first_used` + fuel**, not copied from `warning-lights.md`:
 
-## Step 5 — Fault statement, then stop
+- Engine MIL as a listed fail item: petrol cars first used on or after 1 July 2003; diesel (including diesel hybrid) on or after 1 July 2008. Pure EV: do not call the engine lamp an MOT fail item.
+- TPMS as a listed fail item: M1 first used on or after 1 January 2012, and only a **malfunction** (often flash-then-steady), not a lamp that only means inflate the tyre.
+- Never say "Expect a fail" or "will likely fail as it stands." In scope: the tester may record a Major if the lamp still indicates a malfunction — check the [DVSA inspection manual](https://www.gov.uk/guidance/mot-inspection-manual-for-private-passenger-and-light-commercial-vehicles). Out of scope: this lamp is not an automatic fail item on this car.
 
-If the owner is still driving and drive advice is **Stop**, lead with drive advice. Otherwise keep this order. Never put a product, tool or affiliate link above a stop instruction.
+If MOT is expired or due within 30 days, add an owner booking line in the statement, not a verdict.
+
+## Step 5 — Fault statement
+
+Spoken card first (~60–80 words). Same facts as a written hand-over, without ids, fusion slugs, or URLs.
 
 ```
-[Vehicle]      year, make, model, engine, fuel · last recorded mileage · MOT expiry
-[Showing]      which lamp, what colour, steady or flashing
-[Since]        when it started and what the car was doing
-[Symptoms]     what the owner notices — power, noise, smell, smoke, steering, temperature
-[History]      relevant defects or advisories from this car's own MOT record
-[Drive advice] one of: safe to drive / drive with care / limited driving / stop now
-               plus the condition that would escalate it
-[Ask the garage] two or three specific questions
+[Vehicle]      year, make, model, engine, fuel · mileage · MOT expiry
+[Showing]      lamp in plain English, colour, steady or flashing
+[Since]        when it started (one line; merge with symptoms if short)
+[History]      same-system MOT notes only, or one negative line
+[Drive advice] safe to drive / drive with care / limited driving / stop now
+               + escalation
+               Stop → do not drive it in; ask the garage to collect, or call recovery
+               Limited → they may drive directly there, no extra journeys
+[Ask the garage] readings or process rules, not a parts shortlist
+[Book]         only if MOT expired, due within 30 days, or an in-scope Major lamp
 ```
 
-Write it so the owner can read it aloud at a service desk. Give the escalation condition every time. Only suggest a diagnostic scan where reading a code would actually change the next step.
-
-Pass versus fail (one line each):
+Pass versus fail:
 
 - Pass: drive-with-care plus the escalation. Fail: "likely a failing catalytic converter."
-- Pass: quote this car's MOT as context. Fail: "the leak is causing the lamp."
+- Pass: quote this car's MOT as prior notes. Fail: "the leak is causing the lamp."
 - Pass: "the lamp does not say which cylinder." Fail: "it's cylinder 3."
+- Pass: restating recovery / scan / keep-driving from the statement. Fail: naming a likely part.
+- Pass: "read the freeze frame before replacing anything." Fail: "sensor, reluctor, or wiring" / "soot-loaded or ash-loaded."
 
-See `references/examples.md` for complete worked runs (plate-then-petrol-board-then-lamp-6, oil-lamp-while-driving, diesel van DPF, electric 12V lamp) plus short failure paths (not_found, unmatched lamp, diagnosis refused).
+Owner facts (how long the lamp was on) go in **[Since]** or a **Tell the garage** line, not as questions to the mechanic.
 
-After the statement, **stop**. If they ask what is wrong or how to fix it, say this skill does not diagnose. Do not add a likely cause in the same turn, including as a "general assistant". The statement is the handoff.
+After the statement: if they ask what is wrong or how to fix it, this skill does not diagnose. If they ask recovery, a scan, or whether they can keep driving, **restate [Drive advice]**. Do not say "continue as a normal assistant" to the owner.
 
 ## Red lines
 
 1. **No SAE J2012 wording**, and no bulk fault-code definition tables, in output or in this repository.
 2. **No repair steps for Red-class work.** Airbags and pyrotechnic components, brake hydraulics and bleeding, high-pressure fuel systems, anything needing the car lifted. Refer these out. Say why.
-3. **Safety advice precedes commercial content.** Never place a tool, scanner or parts link above a stop-driving instruction.
-4. **Never advise clearing a lamp** as a fix. Clearing a code does not repair anything, and on a Major-defect lamp it hides an MOT failure.
-5. **The plate is personal data.** It is used for one lookup and never persisted.
-6. **MOT rules are checked, not recited from memory.** Whether a lamp is a Major defect depends on the vehicle's first-use date and whether the lamp applies. Link to the [DVSA inspection manual](https://www.gov.uk/guidance/mot-inspection-manual-for-private-passenger-and-light-commercial-vehicles) rather than asserting a rule you have not verified.
+3. **Safety advice precedes commercial content.** Never place a tool, scanner or parts link above a stop-driving instruction in the statement.
+4. **Never advise clearing a lamp** as a fix.
+5. **The plate is personal data.** Do not print, file, URL, or commit it.
+6. **MOT rules are gated on first-use and fuel**, then linked to the DVSA manual — not recited as "Expect a fail."
 
 ## Data sources and attribution
 

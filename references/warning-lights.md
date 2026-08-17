@@ -8,12 +8,12 @@ Grading follows a four-level scheme so it can be consumed programmatically:
 - `drive_advice` — `Yes` · `YesWithCare` · `Limited` (get it to a garage, no journeys) · `Stop` (pull over now)
 - `warnings` — `W-SUPPORT` (lifting/support) · `W-HOT` (burns/scalding) · `W-ELECTRICAL` (12V, SRS, HV) · `W-CO` (exhaust gas/ventilation)
 
-These 13 `id` values are stable. Do not rename them. An agent presenting a picker must use these ids and numbers 1–13. Which still picture to show depends on the car (`references/boards.md`); it is not always `assets/cluster.png`.
+These 13 `id` values are stable. Do not rename them. Which still picture to show depends on the car (`references/boards.md`). 7 is not a second drawing: the engine cell is 6; flashing is spoken as 7.
 
-Boards are subsets of these 13. Numbers stay global. See `references/boards.md`.
-- petrol / hybrid: omit 9 DPF and 13 glow-plug
-- diesel / unknown: all 13
-- electric: omit 1 oil, 6/7 engine, 9 DPF, 13 glow-plug; keep 2,3,4,5,8,10,11,12. Lamp 8 on an EV is the 12V system.
+Boards are subsets. Numbers stay global. Ghost slots keep omitted numbers in place so owners do not count cells.
+- petrol / hybrid: ghost 9 DPF and 13 glow-plug
+- diesel / unknown: live 1–6, 8–13
+- electric: ghost 1, 6, 9, 13; keep 2, 3, 4, 5, 8, 10, 11, 12. Lamp 8 on an EV is the 12V system.
 
 **Colour first.** Red means stop or act now. Amber means investigate. Blue and green are informational — main beam, cruise, indicators — and are not faults.
 
@@ -61,7 +61,7 @@ Stop as soon as it is safe, switch off immediately, and do not restart to reach 
 **drive_advice:** Stop
 **warnings:** W-HOT
 
-**Symbol:** thermometer sitting in wavy liquid. **Colour:** red when hot.
+**Symbol:** thermometer sitting in wavy liquid. **Colour:** red when hot. A **blue** version of the same symbol is engine-cold, not this id — ask colour before any Stop line.
 
 `safety_class: Red` · `drive_advice: Stop` · `warnings: W-HOT`
 
@@ -88,16 +88,18 @@ A **blue** version of the same symbol means the engine is still cold. That is in
 **colour:** red
 **steady_or_flash:** either
 **safety_class:** Red
-**drive_advice:** Stop
+**drive_advice:** Stop only after parking brake / EPB / Auto Hold is fully off and the lamp stays on; YesWithCare until then unless they already reported a spongy pedal, a pull, or a leak
 **warnings:** W-SUPPORT
 
 **Symbol:** exclamation mark inside a circle, inside brackets. Some cars spell out `BRAKE`. **Colour:** red.
 
-`safety_class: Red` · `drive_advice: Stop` · `warnings: W-SUPPORT`
+`safety_class: Red` · `drive_advice:` conditional Stop · `warnings: W-SUPPORT`
 
-**Check the handbrake first.** A partially applied handbrake is the most common cause and the easiest to rule out. Electronic parking brakes can also fail to fully release.
+**Check the parking brake / EPB / Auto Hold first.** A partially applied parking brake is the most common cause. Electronic parking brakes can also fail to fully release.
 
-If the handbrake is fully off and the lamp stays on, treat it as a hydraulic fault: low fluid, a leak, or a pressure imbalance. Brakes can fail progressively and then suddenly. Stop and arrange recovery rather than driving to a garage.
+If it is fully off and the lamp stays on, or they already reported a long/spongy pedal, a pull, or fluid at a wheel, treat it as a hydraulic fault. **Drive advice:** do not drive it in; arrange recovery.
+
+**MOT:** a brake-fluid warning can be Minor in the current manual. Do not say Expect a fail. Gate on whether the lamp applies; link the DVSA manual.
 
 **Owner can safely:** look at the brake fluid level *through* the translucent reservoir. Do not remove the cap — contaminated or aerated fluid is worse than no inspection. Below the MIN mark means stop.
 
@@ -137,7 +139,7 @@ Drive it to get it fixed. Do not treat it as something to deal with next year.
 
 **Tell the garage:** exactly when it started and what happened just before; whether the car has ever been in a collision; whether any seat, belt or trim work has been done.
 
-**MOT:** an SRS lamp indicating a fault is a Major defect where the check applies to that vehicle. Expect a fail.
+**MOT:** an SRS lamp indicating a fault is a listed Major where that check applies. Do not say Expect a fail. Verify first-use / whether the lamp applies against the DVSA manual.
 
 ---
 
@@ -181,7 +183,11 @@ If the lamp is on and the steering still feels normal, that is limited driving: 
 **drive_advice:** YesWithCare
 **warnings:** none
 
-**Symbol:** engine block outline. **Colour:** amber. **Behaviour:** steady. Not shown on the electric board.
+**Symbol:** engine block outline. **Colour:** amber. **Behaviour:** steady. Drawn once as cell 6; flashing is spoken as 7. Ghosted on the electric board.
+
+Do not treat a pick of 6 as steady until they have said it is not flashing.
+
+**MOT:** listed as a Major MIL item only where first-use and fuel put the car in scope (petrol cars from 1 July 2003; diesel from 1 July 2008). Pure EV: not an engine-MIL fail item. Never copy "Expect a fail." See SKILL Step 4.
 
 `safety_class: Amber` · `drive_advice: YesWithCare` · `warnings: none`
 
@@ -195,7 +201,7 @@ The lamp itself says nothing about *which* fault — that is the honest answer, 
 
 **Tell the garage:** ask them to read the stored code *and the freeze frame* before replacing anything, and ask whether the diagnostic fee comes off the repair.
 
-**MOT:** an illuminated engine management lamp is a Major defect where the lamp applies. Clearing it without repair is not a fix and the lamp will return.
+**MOT:** gate on first-use and fuel (SKILL Step 4). Clearing the lamp without repair is not a fix.
 
 **Existing guide:** `engine-management-light`.
 
@@ -215,11 +221,13 @@ The lamp itself says nothing about *which* fault — that is the honest answer, 
 
 `safety_class: Red` · `drive_advice: Stop` · `warnings: W-HOT`
 
-A flashing engine lamp means an active misfire. Unburnt fuel is passing into the catalytic converter, where it burns and overheats it. This turns a spark plug or coil job into a catalytic converter replacement, and the converter can get hot enough to be a fire risk.
+A flashing **engine-block** outline while running is a severe running fault that can damage aftertreatment. Word it that way — not "it is a misfire / it is the cat." Key-on bulb-check flashes are not this id.
 
-Ease off, stop somewhere safe, switch off. If it flashes again on restart, arrange recovery.
+On diesel, a flashing **coil** is id 13, not 7.
 
-**Tell the garage:** the code will identify which cylinder. Ask them to confirm the cylinder before any parts are ordered.
+**Tell the garage:** read the stored code before ordering parts. The lamp does not name the cylinder.
+
+**MOT:** same first-use gate as entry 6.
 
 **Existing guide:** `engine-management-light-flashing-and-car-juddering`.
 
@@ -239,15 +247,13 @@ Ease off, stop somewhere safe, switch off. If it flashes again on restart, arran
 
 `safety_class: Amber` · `drive_advice: Limited` · `warnings: W-ELECTRICAL (battery12)`
 
-Despite the symbol, this almost never means the battery needs replacing. Lit with the engine running, it means the charging system is not keeping up — usually the alternator, the drive belt, or the wiring between them. The car is running on stored charge and will eventually stop, possibly without warning. On an EV or hybrid this is still the 12V charging lamp, not traction-battery state of charge.
+Despite the symbol, this almost never means the battery needs replacing. Lit with the engine running, it means the charging system is not keeping up — usually the alternator, the drive belt, or the wiring between them. The car is running on stored charge and will eventually stop, possibly without warning. On an EV or hybrid this is still the 12V charging lamp, not traction-battery state of charge. Plug, lightning-bolt pack, or a message that says high-voltage is unmatched EV, not 8.
 
-Turn off heated screens, heated seats, air conditioning and anything else non-essential, and head somewhere you can stop.
+Turn off heated screens, heated seats, air conditioning and anything else non-essential, and get it somewhere it can be left.
 
-**Escalate to Stop** if the temperature gauge starts rising, the steering goes heavy, or you hear a belt noise — one belt may drive all three systems.
+**Escalate to Stop** on ICE if the temperature gauge starts rising, the steering goes heavy, or you hear a belt noise — one belt may drive all three. **Skip that belt combo on an electric car.**
 
-**Owner can safely:** look at the auxiliary belt for cracks or looseness if it is visible without removing anything, and check the battery terminals are clean and tight.
-
-**Tell the garage:** ask for charging voltage at idle and at raised revs, and for the belt and tensioner to be checked, before any battery is sold.
+**Tell the garage:** charging voltage at idle and at raised revs (ICE), or 12V / DC-DC health (EV/hybrid), before any battery is sold.
 
 **MOT:** the battery lamp itself is not a specific test item, but low voltage can trigger ABS, SRS and emissions lamps which are.
 
@@ -265,7 +271,7 @@ Turn off heated screens, heated seats, air conditioning and anything else non-es
 **drive_advice:** Limited
 **warnings:** W-CO
 
-**Symbol:** exhaust box emitting dots. **Colour:** amber. **Diesel only.** Not shown on petrol/hybrid/electric boards.
+**Symbol:** exhaust box emitting dots. **Colour:** amber. **Diesel DPF only.** Ghosted on petrol/hybrid/electric boards. A petrol exhaust-dots lamp is unmatched GPF — do not use this entry or regen copy.
 
 `safety_class: Amber` · `drive_advice: Limited` · `warnings: W-CO`
 
@@ -277,9 +283,9 @@ The filter is not clearing its soot load. On a steady amber lamp with the car dr
 
 **Owner can safely:** check the oil level, and read the handbook's regeneration procedure for that specific car.
 
-**Tell the garage:** ask for soot load and differential pressure readings, not just a code. Ask whether the filter is soot-loaded (cleanable) or ash-loaded (replacement).
+**Tell the garage:** soot load and differential pressure readings, not just a code. Do not offer soot-vs-ash as a closed repair path.
 
-**MOT:** a missing or obviously modified factory DPF is a Major defect. Excess smoke can also fail.
+**MOT:** a missing factory DPF can be a Major where one was fitted. Do not say Expect a fail from this lamp alone.
 
 **Existing guide:** `dpf-light-wont-go-off-after-driving`.
 
@@ -305,9 +311,9 @@ Usually exactly what it says: one or more tyres are below the target pressure. T
 
 **Owner can safely:** check all four pressures cold against the placard in the driver's door sill or the fuel flap, not against the number moulded on the tyre. Inspect for a nail or a bulge. Reset the system per the handbook after inflating.
 
-**Tell the garage:** if pressures are correct and it persists, ask them to read sensor IDs and battery status — TPMS sensor batteries typically last several years and then fail one at a time.
+**Tell the garage:** if pressures are correct and it persists, read sensor IDs and battery status. Do not guess that a sensor battery has died.
 
-**MOT:** a TPMS malfunction lamp is a testable defect for vehicles where the system applies.
+**MOT:** TPMS inspection is for M1 first used on or after 1 January 2012. A lamp that only means inflate the tyre is not automatically a malfunction fail. Flash-then-steady is the usual malfunction pattern. Pre-2012: do not call this a testable MOT lamp item.
 
 **Existing guide:** `tyre-pressure-light`.
 
@@ -331,15 +337,13 @@ The normal brakes still work. Anti-lock does not. Under hard braking on a wet, l
 
 Drive gently and directly to a garage. Leave extra stopping distance and avoid heavy braking.
 
-The most common cause is a single wheel speed sensor or its wiring — often the cheapest realistic outcome, which is worth telling an owner who is bracing for a large bill.
-
-**No owner repair on ABS hydraulics.** Sensor and wiring inspection can be done professionally; bleeding an ABS system cannot be verified on a driveway.
+**No owner repair on ABS hydraulics.**
 
 **Owner can safely:** note whether the lamp appeared together with the brake lamp or the stability lamp, and whether it comes and goes at a particular speed.
 
-**Tell the garage:** ask which wheel the fault is reported on and whether it is a sensor, a reluctor ring or wiring.
+**Tell the garage:** which wheel the scan reports. Do not offer sensor / reluctor / wiring as a closed list.
 
-**MOT:** an ABS lamp indicating a fault is a Major defect where ABS is required. Expect a fail.
+**MOT:** an ABS lamp indicating a malfunction is a listed Major where ABS is required. Do not say Expect a fail. Verify against the current manual.
 
 ---
 
@@ -353,7 +357,7 @@ The most common cause is a single wheel speed sensor or its wiring — often the
 **drive_advice:** YesWithCare
 **warnings:** none
 
-**Symbol:** car with wavy skid lines behind it. **Colour:** amber.
+**Symbol:** car with wavy skid lines behind it. **Colour:** amber. This id is the **skid-lines** shape only. A car-with-! and no tracks on an EV is unmatched EV, not this lamp.
 
 `safety_class: Amber` · `drive_advice: YesWithCare` · `warnings: none`
 
@@ -385,16 +389,14 @@ This lamp is misread more often than any other, because flashing and steady mean
 
 `safety_class: Amber` · `drive_advice: YesWithCare` · `warnings: none`
 
-**Coming on with the ignition and going out after a few seconds is normal.** That is the preheat cycle, and the car is telling you to wait before cranking. It is not a fault and many owners report it as one.
+**Coming on with the ignition and going out after a few seconds is normal.** That is the preheat cycle. It is not a fault. If they picked 13 and it went out, stop — no garage card.
 
 It matters when it does something else:
 
-- **Stays on after the engine has started** — a preheat system fault. Expect harder cold starting and possibly white smoke on a cold morning.
-- **Flashes** — on many diesels this is the equivalent of the engine management lamp, and the actual fault is stored elsewhere in the engine management system. Treat it like entry 6.
+- **Stays on after the engine has started** — a preheat system fault.
+- **Flashes** — on many diesels this is engine-management, not a preheat-system story. Ask judder, power, smoke. If those are present, grade Stop like 7; if the car is driving normally, Limited and get codes. Do not reuse petrol cat-fire copy. Do not tell them they should have picked 7.
 
-**Owner can safely:** note whether cold starting has got worse and whether there is white smoke when cold.
-
-**Tell the garage:** ask them to read engine codes even though the lamp is a glow plug symbol, because a flashing preheat lamp often points somewhere else entirely.
+**Ask the garage:** read engine codes. Do not promise what the code will say.
 
 **MOT:** not a specific lamp check on most vehicles. Excess smoke and emissions failures are separate test items.
 
@@ -402,8 +404,17 @@ It matters when it does something else:
 
 ## Not faults
 
-Blue and green symbols report status, not problems: main beam, indicators, cruise control, fog lamps, engine cold. If an owner describes a blue or green symbol, say so plainly and move on.
+Blue and green symbols report status: main beam, indicators, cruise control, fog lamps, engine cold.
+
+Name the status function. One check (beam/fog/cruise off → lamp out; engine warmed → blue thermometer out). Ask if any **circled** lamp is also on. If not, a short "not a fault" note — not a garage card.
+
+A **blue** thermometer is not id 2. Ask colour before any coolant Stop line.
 
 ## When the description does not match
 
-Cars vary, and manufacturers invent their own symbols. If what the owner describes does not clearly match an entry above, say that rather than picking the closest one. Ask them to photograph the cluster or look it up in the handbook, which lists every symbol for that specific car.
+Do not pick the closest of the 13. Split:
+
+- named blue/green → Not faults
+- number not printed on this fuel picture → keep this board; unknown only if they say none of these shapes
+- AdBlue / GPF / EV turtle / car-with-! / charge plug → unmatched path in `references/boards.md`, still a thinner statement
+- else → cluster photo or handbook symbol
