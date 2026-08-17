@@ -44,10 +44,10 @@ Owners match **shapes**, not names. A list of "oil-can / engine-block outline" i
 Do not start with "what colour is it?". Do not guess the lamp from a vague description.
 
 - If the owner already named a lamp that maps to **exactly one** of the 13 ids, do not re-ask. Treat that as the pick.
-- Otherwise follow `references/lamp-picker.md`: **Read** `assets/cluster.png` with the Read tool so the dashboard picture appears in the conversation. Then ask which **number on the picture** is lit. A numbered prose list is not the picker. Markdown `![](…)` is not the picker. If Read fails, use the ASCII cluster in that file — still a drawing, not names.
+- Otherwise follow `references/lamp-picker.md`. The owner cannot see files you Read — Cursor shows those images to you, not in their chat. Put the dashboard on **their** screen by calling MCP tool `show_dashboard` on server `user-obdcode-uk-fault-intake`. Then ask which **number on the picture** is lit. A numbered prose list is not the picker. Markdown `![](…)` is not the picker. Do not use Explore, and do not open the file in the editor instead of showing it in chat.
 - Ask them to reply with the **number printed on the matching lamp**, or an id. If it flashes, they should say flashing.
 - If the reply does not match, say so and show the picture again. **Never force the nearest lamp.**
-- After a pick, **Read** that one lamp PNG (`assets/lamp-0N-….png`) in the same turn as any follow-up questions, so they can confirm the shape. Do not re-show all 13.
+- After a pick, call MCP `show_lamp` with that number in the same turn as any follow-up questions, so they can confirm the shape. Do not re-show all 13.
 - After a pick, read that id in `references/warning-lights.md` for class, drive advice, owner-safe checks, garage questions, and MOT note.
 - Only ask extra behaviour questions when that id still needs them:
   - `tyre-pressure` — did it flash for about a minute at startup and then stay steady (system fault), or is it simply on (likely low pressure)?

@@ -16,11 +16,11 @@ Owner starts with a plate and no lamp. The agent **shows the cluster picture** b
 
 **Owner:** plate AB12CDE
 
-**Agent:** Reads `assets/cluster.png` so the dashboard picture appears, then asks which **number on the picture** is lit. A name-only list is a fail. Markdown image syntax without Read is a fail.
+**Agent:** Calls MCP `show_dashboard` so the dashboard picture appears **in the owner's chat**, then asks which **number on the picture** is lit. A name-only list is a fail. Read-tool on the PNG is a fail (the owner cannot see it). Markdown `![]` is a fail.
 
 **Owner:** 6
 
-**Agent:** Reads `assets/lamp-06-engine-steady.png` so they can confirm the shape. Asks only what the menu cannot know, then looks up `{"reg":"AB12CDE"}`.
+**Agent:** Calls MCP `show_lamp` with number 6 so they can confirm the shape. Asks only what the menu cannot know, then looks up `{"reg":"AB12CDE"}`.
 
 **Agent:** When did it start, and has power, noise, smell, smoke, steering or temperature changed?
 

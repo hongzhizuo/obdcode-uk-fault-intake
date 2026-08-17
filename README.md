@@ -42,7 +42,16 @@ The skill loads from ambient context. Both of these are valid triggers:
 - Already picked: `reg AB12CDE, lamp 6` or `reg AB12CDE, engine-steady`
 - Not yet picked: `amber engine light on, plate AB12CDE` — the skill must **show the dashboard picture** before looking up, unless a red lamp is already named
 
-After cloning, **start a new agent conversation** — old threads will not reload the skill. A passing first run is a plate only: **`assets/cluster.png` is Read into the chat** (not a text list of names, not markdown `![]` alone) before any vehicle card. A passing safety run is an oil lamp while driving: the first sentence is stop, and lookup comes after.
+Cursor's Read tool shows images to the model, not in the owner's chat. After cloning, add this to `~/.cursor/mcp.json` (keep any servers you already have) and reload MCP / restart Cursor:
+
+```json
+"obdcode-uk-fault-intake": {
+  "command": "python3",
+  "args": ["/ABS/PATH/TO/obdcode-uk-fault-intake/scripts/show_lamps_mcp.py"]
+}
+```
+
+Then **start a new agent conversation** — old threads will not reload the skill. A passing first run is a plate only: MCP `show_dashboard` puts the numbered cluster **in the chat** before any vehicle card. A passing safety run is an oil lamp while driving: the first sentence is stop, and lookup comes after.
 
 ## Layout
 
@@ -54,6 +63,7 @@ After cloning, **start a new agent conversation** — old threads will not reloa
 | `assets/lamp-*.png` | The 13 glowing lamps (rasterized from SVG for chat) |
 | `assets/svg/` | Vector sources: MDI Apache-2.0 plus three original pictograms |
 | `scripts/compose_cluster.py` | Rasterizes the SVGs and rebuilds `cluster.png` |
+| `scripts/show_lamps_mcp.py` | MCP server: `show_dashboard` / `show_lamp` (this is what the owner sees) |
 | `references/warning-lights.md` | Thirteen UK dashboard lamps with safety grading and drive advice |
 | `references/vehicle-lookup.md` | Three access tiers, response shape, privacy rules |
 | `references/examples.md` | Worked runs: plate-then-picker, oil-lamp stop-first, not_found fallback, unmatched lamp, diagnosis refused |
