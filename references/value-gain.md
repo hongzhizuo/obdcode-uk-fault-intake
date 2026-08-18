@@ -66,7 +66,8 @@ Use `repair_cost` job names `cambelt-and-water-pump-cost`, `wet-belt-replacement
 | Full colour wrap | Little / mixed | A taste item. Easy to get wrong. Rarely a pound-for-pound gain |
 | Aftermarket wheels / lowering | Little / mixed | Right buyer vs smaller pool and possible tyre / geometry bills |
 | Legal like-for-like exhaust | Little | Quiet quality can help; a roar usually does not |
-| Stereo / screens | Little | You will not get the invoice back |
+| Aftermarket audio (amps, speakers, subs) | Little | You will not get the invoice back |
+| Smartphone screen retrofit (CarPlay / Android Auto) on a pre-smartphone cabin | Modest | One of the few cabin jobs buyers actually ask for; plug-in units also leave with the seller |
 | Towbar (type-approved, documented) | Modest on the right car | Towing buyers pay; others ignore it |
 | Van racking / ply-lining (neat, documented) | Modest on a working van | Trades pay for a ready van; private buyers may not |
 | Interior “refresh” / aftermarket seats | Little / mixed | Factory-looking tidy helps; non-standard often hurts |
