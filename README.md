@@ -33,6 +33,18 @@ without touching the dashboard wiring. The same story runs across our range:
 small, reversible kit that makes an older vehicle nicer to use and easier to
 sell.
 
+The automotive stores behind this, all ours, all UK-facing:
+
+- [motscan.co.uk](https://motscan.co.uk) — OBD readers, for owners who want to
+  see the code themselves before the garage does
+- [trucknav.co.uk](https://trucknav.co.uk) — plug-in navigation screens for
+  older cabs and cabins
+- [autotrue.co.uk](https://autotrue.co.uk) — automotive multimeters for
+  driveway electrical checks
+- [dcautom.co.uk](https://dcautom.co.uk) — 12V pumps and kit
+
+This skill never links to them in speech; the red lines below still hold.
+
 ## What it does not do
 
 - Diagnose a part from a lamp
