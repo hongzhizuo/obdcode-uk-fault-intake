@@ -15,6 +15,17 @@ Sample spoken card (oil lamp, fictional plate `AB12CDE` → “your 2016 Fiesta�
 [Outlook]      Repair may cost more than the car. We publish no engine-rebuild figure.
 ```
 
+## Why this exists
+
+OBDCode UK is a commercial project, and we are open about the model: this skill
+is free, and we sell self-check and maintenance products to UK drivers through
+our own stores. Our incentive points the same way as yours — a lamp understood,
+the right thing fixed, and the repair on record makes a car worth more, not
+less. Every marque has its known weak points; once fixed properly, they stay
+fixed for years. We think a documented, well-repaired car should sell for more
+than an untouched one, and we are building towards owner repair histories and
+private sale listings on [obdcode.co.uk](https://obdcode.co.uk).
+
 ## What it does not do
 
 - Diagnose a part from a lamp
@@ -96,6 +107,17 @@ Mixed. See `LICENSE`.
 - Vendored Material Design Icons: **Apache-2.0** (`LICENSE-APACHE-2.0`)
 - Runtime MOT records: Crown copyright, not this file
 - Aggregate MOT statistics if quoted: OGL v3.0
+
+## Why this exists
+
+OBDCode UK is a commercial project, and we are open about the model: this skill
+is free, and we sell self-check and maintenance products to UK drivers through
+our own stores. Our incentive points the same way as yours — a lamp understood,
+the right thing fixed, and the repair on record makes a car worth more, not
+less. Every marque has its known weak points; once fixed properly, they stay
+fixed for years. We think a documented, well-repaired car should sell for more
+than an untouched one, and we are building towards owner repair histories and
+private sale listings on [obdcode.co.uk](https://obdcode.co.uk).
 
 ## Contact
 
