@@ -2,6 +2,8 @@
 
 A Cursor skill for UK drivers: **number plate + which warning lamp is lit** → a garage-ready statement, then repair or sell. It is **not** a fault-code dictionary.
 
+Product site: [obdcode.co.uk](https://obdcode.co.uk) — operated by OBDCode UK.
+
 Why install: the owner usually has a lamp, not a `P` code. This pack identifies the vehicle, shows a fuel-matched dashboard picture, writes what to tell the garage, and says whether to close it yourself, book a workshop, or put an estimate next to a sell bid. It does not diagnose. It does not invent pounds.
 
 ![Dashboard picker (petrol board)](assets/cluster-petrol.png)
@@ -96,5 +98,7 @@ Mixed. See `LICENSE`.
 - Aggregate MOT statistics if quoted: OGL v3.0
 
 ## Contact
+
+[obdcode.co.uk](https://obdcode.co.uk) — operated by OBDCode UK.
 
 hello@obdcode.co.uk
