@@ -35,8 +35,6 @@ sell.
 
 The automotive stores behind this, all ours, all UK-facing:
 
-- [motscan.co.uk](https://motscan.co.uk) — OBD readers, for owners who want to
-  see the code themselves before the garage does
 - [trucknav.co.uk](https://trucknav.co.uk) — plug-in navigation screens for
   older cabs and cabins
 - [autotrue.co.uk](https://autotrue.co.uk) — automotive multimeters for
